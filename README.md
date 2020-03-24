@@ -1,1 +1,1 @@
-# intestinal-polyp-segmentation
+# bowel-polyp-segmentation

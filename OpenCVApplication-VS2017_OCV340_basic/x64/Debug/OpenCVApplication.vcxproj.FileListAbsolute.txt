@@ -1,0 +1,2 @@
+C:\Users\hoGGo\Desktop\PI\Res_proj\OpenCVApplication-VS2017_OCV340_basic\x64\Debug\OpenCVApplication.exe
+C:\Users\hoGGo\Desktop\PI\Res_proj\OpenCVApplication-VS2017_OCV340_basic\x64\Debug\OpenCVApplication.pdb

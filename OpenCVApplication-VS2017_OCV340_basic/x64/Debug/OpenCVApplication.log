@@ -1,0 +1,81 @@
+﻿  OpenCVApplication.cpp
+C:\Users\hoGGo\Desktop\PI\Res_proj\OpenCVApplication-VS2017_OCV340_basic\OpenCVApplication.cpp(703,28): warning C4244: '=': conversion from 'float' to '_Tp', possible loss of data
+          with
+          [
+              _Tp=uchar
+          ]
+C:\Users\hoGGo\Desktop\PI\Res_proj\OpenCVApplication-VS2017_OCV340_basic\OpenCVApplication.cpp(704,28): warning C4244: '=': conversion from 'float' to '_Tp', possible loss of data
+          with
+          [
+              _Tp=uchar
+          ]
+C:\Users\hoGGo\Desktop\PI\Res_proj\OpenCVApplication-VS2017_OCV340_basic\OpenCVApplication.cpp(705,28): warning C4244: '=': conversion from 'float' to '_Tp', possible loss of data
+          with
+          [
+              _Tp=uchar
+          ]
+C:\Users\hoGGo\Desktop\PI\Res_proj\OpenCVApplication-VS2017_OCV340_basic\OpenCVApplication.cpp(881,19): warning C4305: 'initializing': truncation from 'double' to 'float'
+C:\Users\hoGGo\Desktop\PI\Res_proj\OpenCVApplication-VS2017_OCV340_basic\OpenCVApplication.cpp(963,20): warning C4305: 'initializing': truncation from 'double' to 'float'
+C:\Users\hoGGo\Desktop\PI\Res_proj\OpenCVApplication-VS2017_OCV340_basic\OpenCVApplication.cpp(1009,17): warning C4244: 'initializing': conversion from 'int' to 'float', possible loss of data
+C:\Users\hoGGo\Desktop\PI\Res_proj\OpenCVApplication-VS2017_OCV340_basic\OpenCVApplication.cpp(1013,32): warning C4244: '=': conversion from 'float' to '_Tp', possible loss of data
+          with
+          [
+              _Tp=uchar
+          ]
+C:\Users\hoGGo\Desktop\PI\Res_proj\OpenCVApplication-VS2017_OCV340_basic\OpenCVApplication.cpp(1014,36): warning C4244: '=': conversion from 'float' to '_Tp', possible loss of data
+          with
+          [
+              _Tp=uchar
+          ]
+C:\Users\hoGGo\Desktop\PI\Res_proj\OpenCVApplication-VS2017_OCV340_basic\OpenCVApplication.cpp(1015,32): warning C4244: '=': conversion from 'float' to '_Tp', possible loss of data
+          with
+          [
+              _Tp=uchar
+          ]
+C:\Users\hoGGo\Desktop\PI\Res_proj\OpenCVApplication-VS2017_OCV340_basic\OpenCVApplication.cpp(1016,36): warning C4244: '=': conversion from 'float' to '_Tp', possible loss of data
+          with
+          [
+              _Tp=uchar
+          ]
+C:\Users\hoGGo\Desktop\PI\Res_proj\OpenCVApplication-VS2017_OCV340_basic\OpenCVApplication.cpp(1035,10): warning C4244: 'initializing': conversion from 'double' to 'float', possible loss of data
+C:\Users\hoGGo\Desktop\PI\Res_proj\OpenCVApplication-VS2017_OCV340_basic\OpenCVApplication.cpp(1170,28): warning C4244: '=': conversion from 'float' to '_Tp', possible loss of data
+          with
+          [
+              _Tp=uchar
+          ]
+C:\Users\hoGGo\Desktop\PI\Res_proj\OpenCVApplication-VS2017_OCV340_basic\OpenCVApplication.cpp(1171,28): warning C4244: '=': conversion from 'float' to '_Tp', possible loss of data
+          with
+          [
+              _Tp=uchar
+          ]
+C:\Users\hoGGo\Desktop\PI\Res_proj\OpenCVApplication-VS2017_OCV340_basic\OpenCVApplication.cpp(1172,28): warning C4244: '=': conversion from 'float' to '_Tp', possible loss of data
+          with
+          [
+              _Tp=uchar
+          ]
+C:\Users\hoGGo\Desktop\PI\Res_proj\OpenCVApplication-VS2017_OCV340_basic\OpenCVApplication.cpp(1308,13): warning C4244: '/=': conversion from 'float' to 'int', possible loss of data
+C:\Users\hoGGo\Desktop\PI\Res_proj\OpenCVApplication-VS2017_OCV340_basic\OpenCVApplication.cpp(1309,13): warning C4244: '/=': conversion from 'float' to 'int', possible loss of data
+C:\Users\hoGGo\Desktop\PI\Res_proj\OpenCVApplication-VS2017_OCV340_basic\OpenCVApplication.cpp(1356,29): warning C4244: '=': conversion from 'float' to 'int', possible loss of data
+C:\Users\hoGGo\Desktop\PI\Res_proj\OpenCVApplication-VS2017_OCV340_basic\OpenCVApplication.cpp(1357,29): warning C4244: '=': conversion from 'float' to 'int', possible loss of data
+C:\Users\hoGGo\Desktop\PI\Res_proj\OpenCVApplication-VS2017_OCV340_basic\OpenCVApplication.cpp(1382,18): warning C4244: 'initializing': conversion from 'double' to 'float', possible loss of data
+C:\Users\hoGGo\Desktop\PI\Res_proj\OpenCVApplication-VS2017_OCV340_basic\OpenCVApplication.cpp(2073,33): warning C4267: 'initializing': conversion from 'size_t' to 'int', possible loss of data
+C:\Users\hoGGo\Desktop\PI\Res_proj\OpenCVApplication-VS2017_OCV340_basic\OpenCVApplication.cpp(2107,30): warning C4267: 'initializing': conversion from 'size_t' to 'int', possible loss of data
+C:\Users\hoGGo\Desktop\PI\Res_proj\OpenCVApplication-VS2017_OCV340_basic\OpenCVApplication.cpp(2469,15): warning C4244: '=': conversion from 'double' to 'float', possible loss of data
+C:\Users\hoGGo\Desktop\PI\Res_proj\OpenCVApplication-VS2017_OCV340_basic\OpenCVApplication.cpp(2530,22): warning C4244: '=': conversion from 'float' to 'int', possible loss of data
+C:\Users\hoGGo\Desktop\PI\Res_proj\OpenCVApplication-VS2017_OCV340_basic\OpenCVApplication.cpp(2577,11): warning C4244: '=': conversion from 'int' to 'float', possible loss of data
+C:\Users\hoGGo\Desktop\PI\Res_proj\OpenCVApplication-VS2017_OCV340_basic\OpenCVApplication.cpp(2585,11): warning C4244: '=': conversion from 'int' to 'float', possible loss of data
+C:\Users\hoGGo\Desktop\PI\Res_proj\OpenCVApplication-VS2017_OCV340_basic\OpenCVApplication.cpp(2591,12): warning C4244: 'initializing': conversion from 'float' to 'int', possible loss of data
+C:\Users\hoGGo\Desktop\PI\Res_proj\OpenCVApplication-VS2017_OCV340_basic\OpenCVApplication.cpp(2666,45): warning C4244: '=': conversion from 'double' to 'float', possible loss of data
+C:\Users\hoGGo\Desktop\PI\Res_proj\OpenCVApplication-VS2017_OCV340_basic\OpenCVApplication.cpp(2674,33): warning C4244: '=': conversion from 'float' to '_Tp', possible loss of data
+          with
+          [
+              _Tp=uchar
+          ]
+C:\Users\hoGGo\Desktop\PI\Res_proj\OpenCVApplication-VS2017_OCV340_basic\OpenCVApplication.cpp(2886,48): warning C4244: '=': conversion from 'int' to 'float', possible loss of data
+C:\Users\hoGGo\Desktop\PI\Res_proj\OpenCVApplication-VS2017_OCV340_basic\OpenCVApplication.cpp(2895,48): warning C4244: '=': conversion from 'int' to 'float', possible loss of data
+C:\Users\hoGGo\Desktop\PI\Res_proj\OpenCVApplication-VS2017_OCV340_basic\OpenCVApplication.cpp(2904,18): warning C4244: '=': conversion from 'int' to 'float', possible loss of data
+C:\Users\hoGGo\Desktop\PI\Res_proj\OpenCVApplication-VS2017_OCV340_basic\OpenCVApplication.cpp(2912,18): warning C4244: '=': conversion from 'int' to 'float', possible loss of data
+  OpenCVApplication.vcxproj -> C:\Users\hoGGo\Desktop\PI\Res_proj\OpenCVApplication-VS2017_OCV340_basic\x64\Debug\OpenCVApplication.exe
+  OpenCV\dll\Debug\opencv_ffmpeg340_64.dll
+  OpenCV\dll\Debug\opencv_world340d.dll
+          2 file(s) copied.

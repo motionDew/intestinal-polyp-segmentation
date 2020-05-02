@@ -1425,6 +1425,22 @@ int area(Mat* src, uchar objectColor) {
 	return area;
 }
 
+
+int Ni[4] = { -1, 0, 1, 0 };
+int Nj[4] = { 0, -1, 0, 1 };
+
+int Ni8[8] = { -1,-1,0,1,1,1,0,-1 };
+int Nj8[8] = { 0,-1,-1,-1,0,1,1,1 };
+
+bool isInside_4(int r, int c, Mat src) {
+	for (int i = 0;i < 4;i++) {
+		if (!(r + Ni[i] >= 0 && r + Ni[i] < src.rows && c + Nj[i] >= 0 && c + Nj[i] < src.cols)) {
+			return false;
+		}
+	}
+	return true;
+}
+
 int perimeter(Mat* src, uchar objectColor) {
 	Mat contour = Mat(src->rows, src->cols, CV_8UC3);
 	contour.setTo(Scalar(255, 255, 255));
@@ -1433,22 +1449,24 @@ int perimeter(Mat* src, uchar objectColor) {
 
 	for (int i = 0; i < src->rows; i++) {
 		for (int j = 0; j < src->cols; j++) {
-			if (src->at<uchar>(i, j) == objectColor) {
-				if (src->at<uchar>(i - 1, j) != objectColor ||
-					src->at<uchar>(i, j - 1) != objectColor ||
-					src->at<uchar>(i + 1, j) != objectColor ||
-					src->at<uchar>(i, j + 1) != objectColor
-					/*src->at<Vec3b>(i + 1, j + 1) != objectColor ||
-					src->at<Vec3b>(i + 1, j - 1) != objectColor ||
-					src->at<Vec3b>(i - 1, j - 1) != objectColor ||
-					src->at<Vec3b>(i - 1, j + 1) != objectColor*/) {
+			if(isInside_4(i,j,*src) == true){
+				if (src->at<uchar>(i, j) == objectColor) {
+					if (src->at<uchar>(i - 1, j) != objectColor ||
+						src->at<uchar>(i, j - 1) != objectColor ||
+						src->at<uchar>(i + 1, j) != objectColor ||
+						src->at<uchar>(i, j + 1) != objectColor
+						/*src->at<Vec3b>(i + 1, j + 1) != objectColor ||
+						src->at<Vec3b>(i + 1, j - 1) != objectColor ||
+						src->at<Vec3b>(i - 1, j - 1) != objectColor ||
+						src->at<Vec3b>(i - 1, j + 1) != objectColor*/) {
 
-					/*
-					contour.at<Vec3b>(i, j)[0] = 200.0;
-					contour.at<Vec3b>(i, j)[1] = 0;
-					contour.at<Vec3b>(i, j)[2] = 0;
-					*/
-					perimeterValue++;
+						/*
+						contour.at<Vec3b>(i, j)[0] = 200.0;
+						contour.at<Vec3b>(i, j)[1] = 0;
+						contour.at<Vec3b>(i, j)[2] = 0;
+						*/
+						perimeterValue++;
+					}
 				}
 			}
 		}
@@ -1956,7 +1974,7 @@ Mat stackLabelling(Mat src, int vecType)
 	}
 
 	return labels;
-}	
+}
 
 Mat contourTracing(Mat src)
 {
@@ -3005,8 +3023,8 @@ Mat filterRoundObjects(Mat src)
 				{
 					//not exists
 					float tr = thinessRatio(&src, currentColor);
-						std::cout << tr << std::endl;
-					if (tr > 0.99)
+					std::cout << tr << std::endl;
+					if (tr > 0.50)
 					{
 						colorMap[currentColor] = false;
 						dst.at<uchar>(i, j) = 150;
@@ -3127,7 +3145,7 @@ int main()
 
 	// Res mats
 	Mat dsts[15];
-	
+
 	// Useful data
 	int v1[] = { 0, -1, 0, -1, 5, -1, 0, -1, 0 };
 	Mat h1 = Mat(3, 3, CV_32S, v1);
@@ -3136,12 +3154,12 @@ int main()
 	// Negative
 	int s = 0;
 	imshow("SOURCE", src);
-	
-	
+
+
 	dsts[s] = histogramEqualization(src);
 	s++;
 
-	dsts[s] = gammaCorrection(dsts[s-1], 4.0);
+	dsts[s] = gammaCorrection(dsts[s - 1], 4.0);
 	s++;
 
 	dsts[s] = automaticGlobalBinarization(dsts[s - 1]);

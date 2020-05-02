@@ -122,7 +122,7 @@ void testParcurgereSimplaDiblookStyle()
 
 		double t = (double)getTickCount(); // Get the current time [s]
 
-		// the fastest approach using the ìdiblook styleî
+		// the fastest approach using the ‚Äúdiblook style‚Äù
 		uchar* lpSrc = src.data;
 		uchar* lpDst = dst.data;
 		int w = (int)src.step; // no dword alignment is done !!!
@@ -1412,6 +1412,60 @@ void onMouse(int event, int x, int y, int flags, void* param)
 	}
 }
 
+int area(Mat* src, uchar objectColor) {
+	int area = 0;
+	for (int i = 0; i < src->rows; i++) {
+		for (int j = 0; j < src->cols; j++) {
+			if (src->at<uchar>(i, j) == objectColor) {
+				area += 1;
+			}
+		}
+	}
+	//printf("[Area] for object with color [%d,%d,%d]: %d\n", objectColor[2], objectColor[1], objectColor[0], area);
+	return area;
+}
+
+int perimeter(Mat* src, uchar objectColor) {
+	Mat contour = Mat(src->rows, src->cols, CV_8UC3);
+	contour.setTo(Scalar(255, 255, 255));
+
+	int perimeterValue = 0;
+
+	for (int i = 0; i < src->rows; i++) {
+		for (int j = 0; j < src->cols; j++) {
+			if (src->at<uchar>(i, j) == objectColor) {
+				if (src->at<uchar>(i - 1, j) != objectColor ||
+					src->at<uchar>(i, j - 1) != objectColor ||
+					src->at<uchar>(i + 1, j) != objectColor ||
+					src->at<uchar>(i, j + 1) != objectColor
+					/*src->at<Vec3b>(i + 1, j + 1) != objectColor ||
+					src->at<Vec3b>(i + 1, j - 1) != objectColor ||
+					src->at<Vec3b>(i - 1, j - 1) != objectColor ||
+					src->at<Vec3b>(i - 1, j + 1) != objectColor*/) {
+
+					/*
+					contour.at<Vec3b>(i, j)[0] = 200.0;
+					contour.at<Vec3b>(i, j)[1] = 0;
+					contour.at<Vec3b>(i, j)[2] = 0;
+					*/
+					perimeterValue++;
+				}
+			}
+		}
+	}
+
+	//printf("[Perimeter] for object with color [%d,%d,%d]: %d\n", objectColor[2], objectColor[1], objectColor[0], perimeterValue);
+	return perimeterValue;
+}
+
+float thinessRatio(Mat* src, uchar objectColor) {
+
+	float P = perimeter(src, objectColor);
+	float A = area(src, objectColor);
+
+	return (4 * PI) * (A / (P * P));
+}
+
 bool checkArea(Mat src, Vec3b color, int TH_area)
 {
 	int height = src.rows;
@@ -1841,7 +1895,7 @@ Mat stackLabelling(Mat src, int vecType)
 	int height = src.rows;
 
 	int label = 0;
-	Mat source = greyscaleToBlackWhite(src, 250);
+	Mat source = src;
 	Mat labels = Mat::zeros(height, width, CV_8UC1);
 
 
@@ -1902,7 +1956,7 @@ Mat stackLabelling(Mat src, int vecType)
 	}
 
 	return labels;
-}
+}	
 
 Mat contourTracing(Mat src)
 {
@@ -2932,108 +2986,134 @@ Mat idealFilter(Mat src, int type, float val)
 	return dst;
 }
 
-
-////
-/*
-int edgeThresh = 1;
-int lowThreshold;
-int const max_lowThreshold = 100;
-int ratio = 5;
-int kernel_size = 3;
-Mat cannyMyPolyp(Mat matrix) {
-
-	blur(matrix, detected_edges, Size(5, 5));
-	Canny(detected_edges, detected_edges, lowThreshold, lowThreshold * ratio, kernel_size);
-	//imshow("detected edges", detected_edges);
-	return detected_edges;
-}
-Mat reduceReflection() {
-
-	// Convert from BGR to HSV
-	Mat hsv_frame;
-	cvtColor(src, hsv_frame, CV_BGR2HSV);
-
-	// Split HSV into H, S, V channels
-	Mat channels[3];
-	split(hsv_frame, channels);
-
-	imshow("saturation", channels[1]);
-	imshow("value", channels[2]);
-
-	return channels[2]; // [2]-> value, [1]-> saturation : modify to test both
-
-	//---------------------------
-	//cannyMyPolyp(channels[1]); //canny pe saturation <- BEST
-
-
-	// Get mask
-	threshold(channels[0], channels[0], 64, 255, CV_THRESH_BINARY);
-
-	// Use mask to generate a BGR image
-	Mat output(channels[0].rows, channels[0].cols, CV_8UC3);
-
-	//rgb(181, 100, 46)
-
-	for (int j = 0; j < channels[0].rows; j++)
-	{
-		for (int i = 0; i < channels[0].cols; i++)
-		{
-			unsigned char val = channels[0].at<unsigned char>(j, i);
-
-			if (255 == val)
-			{
-				output.at<Vec3b>(j, i)[0] = 189;
-				output.at<Vec3b>(j, i)[1] = 108;
-				output.at<Vec3b>(j, i)[2] = 47;
-			}
-			else
-			{
-				output.at<Vec3b>(j, i)[0] = 94;
-				output.at<Vec3b>(j, i)[1] = 206;
-				output.at<Vec3b>(j, i)[2] = 236;
-			}
-		}
-	}
-
-	imshow("hue", channels[0]);
-	imshow("output", output);
-	waitKey();
-}
-Mat hsvAndCanny(Mat src) {
-
-	Mat canniedImage;
-	canniedImage = cannyMyPolyp(reduceReflection());
-
-	return canniedImage;
-}
-	*/
-
-	////
-
-	//// Functii aditionale proiect
-
-Mat enhance(Mat src)
+Mat filterRoundObjects(Mat src)
 {
 	int height = src.rows;
 	int width = src.cols;
 
-	Mat dst = Mat(height, width, CV_8UC3);
+	Mat dst = Mat::zeros(height, width, CV_8UC1);
+	std::map<uchar, bool> colorMap;
 
 	for (int i = 0; i < height; i++)
 	{
 		for (int j = 0; j < width; j++)
 		{
-			for (int c = 0; c < src.channels(); c++)
+			uchar currentColor = src.at<uchar>(i, j);
+			if (currentColor != 0)
 			{
-				dst.at<Vec3b>(i, j)[c] =
-					saturate_cast<uchar>(0.5 * src.at<Vec3b>(i, j)[c] + 60);
+				if (colorMap.count(currentColor) == 0)
+				{
+					//not exists
+					float tr = thinessRatio(&src, currentColor);
+						std::cout << tr << std::endl;
+					if (tr > 0.99)
+					{
+						colorMap[currentColor] = false;
+						dst.at<uchar>(i, j) = 150;
+					}
+					else
+					{
+						colorMap[currentColor] = true;
+						dst.at<uchar>(i, j) = 0;
+					}
+				}
+				else
+				{
+					//exists
+					if (colorMap[currentColor] == true)
+						dst.at<uchar>(i, j) = 0;
+					else
+						dst.at<uchar>(i, j) = 150;
+				}
 			}
 		}
 	}
 	return dst;
 }
 
+
 ////
+int di_4[4] = { -1,0,1,0 };
+int dj_4[4] = { 0,-1,0,1 };
+
+int di[4] = { -1,-1,-1,0 };
+int dj[4] = { -1,0,1,-1 };
+
+int di_8[8] = { -1,-1,0,1,1,1,0,-1 };
+int dj_8[8] = { 0,-1,-1,-1,0,1,1,1 };
+
+Mat displayRandomColours(int label, Mat labeledMatrix) {
+	std::default_random_engine gen;
+	std::uniform_int_distribution<int> d(0, 255);
+
+	Vec3b* hashmap = (Vec3b*)calloc(label + 1, sizeof(Vec3b));
+
+	for (int i = 0; i <= label; i++) {
+		hashmap[i] = Vec3b(d(gen), d(gen), d(gen));
+	}
+
+
+	Mat coloredMatrix = Mat(labeledMatrix.rows, labeledMatrix.cols, CV_8UC3);
+	coloredMatrix.setTo(Scalar(255, 255, 255));
+
+	for (int i = 0; i < labeledMatrix.rows; i++) {
+		for (int j = 0; j < labeledMatrix.cols; j++) {
+			if (labeledMatrix.at<uchar>(i, j) != 0) {
+				coloredMatrix.at<Vec3b>(i, j) = hashmap[labeledMatrix.at<uchar>(i, j)];
+			}
+		}
+	}
+	return coloredMatrix;
+}
+
+Mat bfsLabeling(Mat* src, int neighborhoodType) {
+	//Should check image type, might get an image that is not binary/grayscale
+	int label = 0;
+	Mat labeledMatrix = Mat::zeros(src->rows, src->cols, CV_8UC1);
+
+	for (int i = 0; i < src->rows; i++) {
+		for (int j = 0; j < src->cols; j++) {
+			if (src->at<uchar>(i, j) == 0 && labeledMatrix.at<uchar>(i, j) == 0) {
+				label++;
+				std::queue<Point> Q;
+				labeledMatrix.at<uchar>(i, j) = label;
+				Q.push(Point(i, j));
+				while (Q.empty() == false) {
+					Point q = Q.front();
+					Q.pop();
+
+					if (neighborhoodType == 4) {
+						for (int k = 0; k < 4; k++) {
+							if ((q.x + di_4[k] < src->rows && q.y + dj_4[k] < src->cols) && (q.x + di_4[k] >= 0 && q.y + dj_4[k] >= 0)) {
+								uchar srcNeighbour = src->at<uchar>(q.x + di_4[k], q.y + dj_4[k]);
+								uchar labelNeighbour = labeledMatrix.at<uchar>(q.x + di_4[k], q.y + dj_4[k]);
+
+								if (srcNeighbour == 0 && labelNeighbour == 0) {
+									labeledMatrix.at<uchar>(q.x + di_4[k], q.y + dj_4[k]) = label;
+									Q.push(Point(q.x + di_4[k], q.y + dj_4[k]));
+								}
+							}
+						}
+					}
+					else if (neighborhoodType == 8) {
+						for (int k = 0; k < 8; k++) {
+							if ((q.x + di_8[k] < src->rows && q.y + dj_8[k] < src->cols) && (q.x + di_8[k] >= 0 && q.y + dj_8[k] >= 0)) {
+								uchar srcNeighbour = src->at<uchar>(q.x + di_8[k], q.y + dj_8[k]);
+								uchar labelNeighbour = labeledMatrix.at<uchar>(q.x + di_8[k], q.y + dj_8[k]);
+
+								if (srcNeighbour == 0 && labelNeighbour == 0) {
+									labeledMatrix.at<uchar>(q.x + di_8[k], q.y + dj_8[k]) = label;
+									Q.push(Point(q.x + di_8[k], q.y + dj_8[k]));
+								}
+							}
+						}
+					}
+				}
+			}
+		}
+	}
+	return labeledMatrix;
+}
 
 int main()
 {
@@ -3047,7 +3127,7 @@ int main()
 
 	// Res mats
 	Mat dsts[15];
-
+	
 	// Useful data
 	int v1[] = { 0, -1, 0, -1, 5, -1, 0, -1, 0 };
 	Mat h1 = Mat(3, 3, CV_32S, v1);
@@ -3056,39 +3136,38 @@ int main()
 	// Negative
 	int s = 0;
 	imshow("SOURCE", src);
-
-	dsts[s] = gammaCorrection(src, 4.0);
+	
+	
+	dsts[s] = histogramEqualization(src);
 	s++;
+
+	dsts[s] = gammaCorrection(dsts[s-1], 4.0);
+	s++;
+
+	dsts[s] = automaticGlobalBinarization(dsts[s - 1]);
+	s++;
+
+	dsts[s] = negative(dsts[s - 1]);
+	s++;
+
+	dsts[s] = erode(dsts[s - 1]);
+	s++;
+
+	Mat color1 = bfsLabeling((dsts + s - 1), 8);
+	Mat color2 = filterRoundObjects(color1);
+
+
+	//s++;
 
 	/*
-	dsts[s] = histogramEqualization(dsts[s-1]);
-	s++;
-	*/
-
-	/*
-	dsts[s] = idealFilter(dsts[s-1], 4, 20);
-	s++;
-	*/
-
-	dsts[s] = histogramEqualization(dsts[s - 1]);
-	s++;
-
-	cv::threshold(dsts[s - 1], dsts[s], 0, 255, CV_THRESH_BINARY | CV_THRESH_OTSU);
-	s++;
-
-	/*
-	cv::Canny(dsts[s-1], dsts[s], 200, 400);
-	s++;
-	*/
-
-
-
 	for (int i = 0; i < s; i++)
 	{
 		char c[4];
 		_itoa(i, c, 10);
 		imshow(c, dsts[i]);
 	}
+	*/
+	imshow("FINAL", color2);
 	waitKey(0);
 
 

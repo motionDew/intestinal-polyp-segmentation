@@ -12,6 +12,14 @@ using namespace cv;
 
 Mat dstGlobal;
 
+typedef struct _boundingBox
+{
+	int xMin;
+	int xMax;
+	int yMin;
+	int yMax;
+}BoundingBox;
+
 void testOpenImage()
 {
 	char fname[MAX_PATH];
@@ -588,21 +596,18 @@ Mat colorToGreyscale(Mat src)
 	int height = src.rows;
 	int width = src.cols;
 
-	Mat dst = Mat(height, width, CV_8UC3);
+	Mat dst = Mat(height, width, CV_8UC1);
 
 	for (int i = 0; i < height; i++)
 	{
 		for (int j = 0; j < width; j++)
 		{
 			Vec3b pixelSrc = src.at<Vec3b>(i, j);
-			Vec3b pixelDst = dst.at<Vec3b>(i, j);
 
 			uchar val = (pixelSrc[0] + pixelSrc[1] + pixelSrc[2]) / 3;
 
 
-			dst.at<Vec3b>(i, j)[0] = val;
-			dst.at<Vec3b>(i, j)[1] = val;
-			dst.at<Vec3b>(i, j)[2] = val;
+			dst.at<uchar>(i, j) = val;
 
 		}
 	}
@@ -2281,6 +2286,7 @@ Mat close(Mat src)
 	return erode(temp);
 }
 
+
 Mat morphOperation(Mat src, int opcode, int numberOfTimes)
 {
 	int height = src.rows;
@@ -3023,11 +3029,12 @@ Mat filterRoundObjects(Mat src)
 				{
 					//not exists
 					float tr = thinessRatio(&src, currentColor);
-					std::cout << tr << std::endl;
-					if (tr > 0.50)
+					float a = area(&src, currentColor);
+					std::cout << tr << " " << currentColor << std::endl;
+					if (tr > 0.705 && a > 200)
 					{
 						colorMap[currentColor] = false;
-						dst.at<uchar>(i, j) = 150;
+						dst.at<uchar>(i, j) = 255;
 					}
 					else
 					{
@@ -3041,7 +3048,7 @@ Mat filterRoundObjects(Mat src)
 					if (colorMap[currentColor] == true)
 						dst.at<uchar>(i, j) = 0;
 					else
-						dst.at<uchar>(i, j) = 150;
+						dst.at<uchar>(i, j) = 255;
 				}
 			}
 		}
@@ -3075,11 +3082,11 @@ Mat displayRandomColours(int label, Mat labeledMatrix) {
 	coloredMatrix.setTo(Scalar(255, 255, 255));
 
 	for (int i = 0; i < labeledMatrix.rows; i++) {
-		for (int j = 0; j < labeledMatrix.cols; j++) {
-			if (labeledMatrix.at<uchar>(i, j) != 0) {
-				coloredMatrix.at<Vec3b>(i, j) = hashmap[labeledMatrix.at<uchar>(i, j)];
-			}
-		}
+for (int j = 0; j < labeledMatrix.cols; j++) {
+	if (labeledMatrix.at<uchar>(i, j) != 0) {
+		coloredMatrix.at<Vec3b>(i, j) = hashmap[labeledMatrix.at<uchar>(i, j)];
+	}
+}
 	}
 	return coloredMatrix;
 }
@@ -3133,33 +3140,27 @@ Mat bfsLabeling(Mat* src, int neighborhoodType) {
 	return labeledMatrix;
 }
 
-int main()
+Mat markPolyp(Mat source)
 {
-	Mat src, dst;
-	char fname[255];
-
-	if (openFileDlg(fname))
-	{
-		src = imread(fname, CV_LOAD_IMAGE_GRAYSCALE);
-	}
-
 	// Res mats
 	Mat dsts[15];
+	Mat src = colorToGreyscale(source);
 
 	// Useful data
 	int v1[] = { 0, -1, 0, -1, 5, -1, 0, -1, 0 };
 	Mat h1 = Mat(3, 3, CV_32S, v1);
-
+	int height = src.rows;
+	int width = src.cols;
+	Mat dst = Mat(height, width, CV_8UC3);
 
 	// Negative
 	int s = 0;
 	imshow("SOURCE", src);
 
-
 	dsts[s] = histogramEqualization(src);
 	s++;
 
-	dsts[s] = gammaCorrection(dsts[s - 1], 4.0);
+	dsts[s] = gammaCorrection(dsts[s - 1], 3.0);
 	s++;
 
 	dsts[s] = automaticGlobalBinarization(dsts[s - 1]);
@@ -3168,12 +3169,71 @@ int main()
 	dsts[s] = negative(dsts[s - 1]);
 	s++;
 
-	dsts[s] = erode(dsts[s - 1]);
+	dsts[s] = morphOperation(dsts[s - 1], 1, 7);
+	s++;
+
+	dsts[s] = morphOperation(dsts[s - 1], 3, 4);
 	s++;
 
 	Mat color1 = bfsLabeling((dsts + s - 1), 8);
-	Mat color2 = filterRoundObjects(color1);
+	Mat segmentedImage = filterRoundObjects(color1);
 
+	imshow("s", brightnessAdjustment(color1, 60));
+	waitKey(0);
+
+	int counter = 0;
+	std::map<uchar, BoundingBox> boundingBoxes;
+
+	for (int i = 0; i < height; i++)
+	{
+		for (int j = 0; j < width; j++)
+		{
+			uchar currentValue = segmentedImage.at<uchar>(i, j);
+			if (currentValue != 0)
+			{
+				counter++;
+				if (boundingBoxes.count(currentValue) == 0)
+				{
+					BoundingBox box;
+					box.xMax = 0;
+					box.xMin = width;
+					box.yMax = 0;
+					box.yMin = height;
+
+					boundingBoxes[currentValue] = box;
+				}
+				else
+				{
+					if (j > boundingBoxes[currentValue].xMax)
+						boundingBoxes[currentValue].xMax = j;
+					if (j < boundingBoxes[currentValue].xMin)
+						boundingBoxes[currentValue].xMin = j;
+					if (i > boundingBoxes[currentValue].yMax)
+						boundingBoxes[currentValue].yMax = i;
+					if (i < boundingBoxes[currentValue].yMin)
+						boundingBoxes[currentValue].yMin = i;
+				}
+			}
+		}
+	}
+
+	std::cout << "Identified polyps: " << boundingBoxes.size() << "\n";
+
+	for (int i = 0; i < height; i++)
+	{
+		for (int j = 0; j < width; j++)
+		{
+			for (auto const& x : boundingBoxes)
+			{
+				if ((i == x.second.yMin || i == x.second.yMax) && (j > x.second.xMin && j < x.second.xMax) ||
+					((j == x.second.xMin || j == x.second.xMax) && (i > x.second.yMin && i < x.second.yMax)))
+					dst.at<Vec3b>(i, j) = Vec3b(255, 0, 0);
+				else
+					dst.at<Vec3b>(i, j) = source.at<Vec3b>(i, j);
+			}
+		}
+	}
+	
 
 	//s++;
 
@@ -3185,11 +3245,23 @@ int main()
 		imshow(c, dsts[i]);
 	}
 	*/
-	imshow("FINAL", color2);
-	waitKey(0);
+
+	return dst;
+}
 
 
+int main()
+{
+	Mat src, dst;
+	char fname[255];
 
+	if (openFileDlg(fname))
+	{
+		src = imread(fname, CV_LOAD_IMAGE_COLOR);
+	}
 
+	dst = markPolyp(src);
+	imshow("Final", dst);
+	waitKey();
 	return 0;
 }

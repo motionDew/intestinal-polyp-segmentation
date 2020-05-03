@@ -1489,6 +1489,11 @@ float thinessRatio(Mat* src, uchar objectColor) {
 	return (4 * PI) * (A / (P * P));
 }
 
+float aspectRatio(float xMax, float xMin, float yMax, float yMin)
+{
+	return (xMax - xMin + 1) / (yMax - yMin + 1);
+}
+
 bool checkArea(Mat src, Vec3b color, int TH_area)
 {
 	int height = src.rows;
@@ -2905,6 +2910,7 @@ Mat logarithm(Mat src)
 	return dst;
 }
 
+
 Mat computeFTMagnitude(Mat src, bool c)
 {
 	Mat srcf;
@@ -3031,10 +3037,10 @@ Mat filterRoundObjects(Mat src)
 					float tr = thinessRatio(&src, currentColor);
 					float a = area(&src, currentColor);
 					std::cout << tr << " " << currentColor << std::endl;
-					if (tr > 0.705 && a > 200)
+					if (tr > 0.7 && a > 400)
 					{
 						colorMap[currentColor] = false;
-						dst.at<uchar>(i, j) = 255;
+						dst.at<uchar>(i, j) = currentColor;
 					}
 					else
 					{
@@ -3048,7 +3054,7 @@ Mat filterRoundObjects(Mat src)
 					if (colorMap[currentColor] == true)
 						dst.at<uchar>(i, j) = 0;
 					else
-						dst.at<uchar>(i, j) = 255;
+						dst.at<uchar>(i, j) = currentColor;
 				}
 			}
 		}
@@ -3077,17 +3083,17 @@ Mat displayRandomColours(int label, Mat labeledMatrix) {
 		hashmap[i] = Vec3b(d(gen), d(gen), d(gen));
 	}
 
-
 	Mat coloredMatrix = Mat(labeledMatrix.rows, labeledMatrix.cols, CV_8UC3);
 	coloredMatrix.setTo(Scalar(255, 255, 255));
 
 	for (int i = 0; i < labeledMatrix.rows; i++) {
-for (int j = 0; j < labeledMatrix.cols; j++) {
-	if (labeledMatrix.at<uchar>(i, j) != 0) {
-		coloredMatrix.at<Vec3b>(i, j) = hashmap[labeledMatrix.at<uchar>(i, j)];
+		for (int j = 0; j < labeledMatrix.cols; j++) {
+			if (labeledMatrix.at<uchar>(i, j) != 0) {
+				coloredMatrix.at<Vec3b>(i, j) = hashmap[labeledMatrix.at<uchar>(i, j)];
+			}
+		}
 	}
-}
-	}
+
 	return coloredMatrix;
 }
 
@@ -3160,7 +3166,7 @@ Mat markPolyp(Mat source)
 	dsts[s] = histogramEqualization(src);
 	s++;
 
-	dsts[s] = gammaCorrection(dsts[s - 1], 3.0);
+	dsts[s] = gammaCorrection(dsts[s - 1], 3.45);
 	s++;
 
 	dsts[s] = automaticGlobalBinarization(dsts[s - 1]);
@@ -3172,8 +3178,10 @@ Mat markPolyp(Mat source)
 	dsts[s] = morphOperation(dsts[s - 1], 1, 7);
 	s++;
 
+	/*
 	dsts[s] = morphOperation(dsts[s - 1], 3, 4);
 	s++;
+	*/
 
 	Mat color1 = bfsLabeling((dsts + s - 1), 8);
 	Mat segmentedImage = filterRoundObjects(color1);
@@ -3183,6 +3191,7 @@ Mat markPolyp(Mat source)
 
 	int counter = 0;
 	std::map<uchar, BoundingBox> boundingBoxes;
+	std::vector<uchar> values;
 
 	for (int i = 0; i < height; i++)
 	{
@@ -3192,6 +3201,7 @@ Mat markPolyp(Mat source)
 			if (currentValue != 0)
 			{
 				counter++;
+				//std::cout << (int) currentValue << std::endl;
 				if (boundingBoxes.count(currentValue) == 0)
 				{
 					BoundingBox box;
@@ -3199,7 +3209,10 @@ Mat markPolyp(Mat source)
 					box.xMin = width;
 					box.yMax = 0;
 					box.yMin = height;
+					
+					std::cout << (int)currentValue << std::endl;
 
+					values.push_back(currentValue);
 					boundingBoxes[currentValue] = box;
 				}
 				else
@@ -3217,7 +3230,17 @@ Mat markPolyp(Mat source)
 		}
 	}
 
+	for (uchar x : values)
+	{
+		BoundingBox box = boundingBoxes[x];
+		float ar = aspectRatio(box.xMax, box.xMin, box.yMax, box.yMin);
+		if (ar < 0.9 || ar > 1.21)
+			boundingBoxes.erase(x);
+
+	}
 	std::cout << "Identified polyps: " << boundingBoxes.size() << "\n";
+
+	Mat markedPoints = Mat::zeros(height, width, CV_8UC1);
 
 	for (int i = 0; i < height; i++)
 	{
@@ -3227,9 +3250,15 @@ Mat markPolyp(Mat source)
 			{
 				if ((i == x.second.yMin || i == x.second.yMax) && (j > x.second.xMin && j < x.second.xMax) ||
 					((j == x.second.xMin || j == x.second.xMax) && (i > x.second.yMin && i < x.second.yMax)))
+				{
+					markedPoints.at<uchar>(i, j) = 255;
 					dst.at<Vec3b>(i, j) = Vec3b(255, 0, 0);
+				}
 				else
-					dst.at<Vec3b>(i, j) = source.at<Vec3b>(i, j);
+				{
+					if (markedPoints.at<uchar>(i, j) == 0)
+						dst.at<Vec3b>(i, j) = source.at<Vec3b>(i, j);
+				}
 			}
 		}
 	}

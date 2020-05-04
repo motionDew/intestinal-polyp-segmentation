@@ -20,388 +20,6 @@ typedef struct _boundingBox
 	int yMax;
 }BoundingBox;
 
-void testOpenImage()
-{
-	char fname[MAX_PATH];
-	while (openFileDlg(fname))
-	{
-		Mat src;
-		src = imread(fname);
-		imshow("image", src);
-		waitKey();
-	}
-}
-
-void testOpenImagesFld()
-{
-	char folderName[MAX_PATH];
-	if (openFolderDlg(folderName) == 0)
-		return;
-	char fname[MAX_PATH];
-	FileGetter fg(folderName, "bmp");
-	while (fg.getNextAbsFile(fname))
-	{
-		Mat src;
-		src = imread(fname);
-		imshow(fg.getFoundFileName(), src);
-		if (waitKey() == 27) //ESC pressed
-			break;
-	}
-}
-
-void testImageOpenAndSave()
-{
-	Mat src, dst;
-
-	src = imread("Images/Lena_24bits.bmp", CV_LOAD_IMAGE_COLOR);	// Read the image
-
-	if (!src.data)	// Check for invalid input
-	{
-		printf("Could not open or find the image\n");
-		return;
-	}
-
-	// Get the image resolution
-	Size src_size = Size(src.cols, src.rows);
-
-	// Display window
-	const char* WIN_SRC = "Src"; //window for the source image
-	namedWindow(WIN_SRC, CV_WINDOW_AUTOSIZE);
-	cvMoveWindow(WIN_SRC, 0, 0);
-
-	const char* WIN_DST = "Dst"; //window for the destination (processed) image
-	namedWindow(WIN_DST, CV_WINDOW_AUTOSIZE);
-	cvMoveWindow(WIN_DST, src_size.width + 10, 0);
-
-	cvtColor(src, dst, CV_BGR2GRAY); //converts the source image to a grayscale one
-
-	imwrite("Images/Lena_24bits_gray.bmp", dst); //writes the destination to file
-
-	imshow(WIN_SRC, src);
-	imshow(WIN_DST, dst);
-
-	printf("Press any key to continue ...\n");
-	waitKey(0);
-}
-
-void testNegativeImage()
-{
-	char fname[MAX_PATH];
-	while (openFileDlg(fname))
-	{
-		double t = (double)getTickCount(); // Get the current time [s]
-
-		Mat src = imread(fname, CV_LOAD_IMAGE_GRAYSCALE);
-		int height = src.rows;
-		int width = src.cols;
-		Mat dst = Mat(height, width, CV_8UC1);
-		// Asa se acceseaaza pixelii individuali pt. o imagine cu 8 biti/pixel
-		// Varianta ineficienta (lenta)
-		for (int i = 0; i < height; i++)
-		{
-			for (int j = 0; j < width; j++)
-			{
-				uchar val = src.at<uchar>(i, j);
-				uchar neg = 255 - val;
-				dst.at<uchar>(i, j) = neg;
-			}
-		}
-
-		// Get the current time again and compute the time difference [s]
-		t = ((double)getTickCount() - t) / getTickFrequency();
-		// Print (in the console window) the processing time in [ms] 
-		printf("Time = %.3f [ms]\n", t * 1000);
-
-		imshow("input image", src);
-		imshow("negative image", dst);
-		waitKey();
-	}
-}
-
-void testParcurgereSimplaDiblookStyle()
-{
-	char fname[MAX_PATH];
-	while (openFileDlg(fname))
-	{
-		Mat src = imread(fname, CV_LOAD_IMAGE_GRAYSCALE);
-		int height = src.rows;
-		int width = src.cols;
-		Mat dst = src.clone();
-
-		double t = (double)getTickCount(); // Get the current time [s]
-
-		// the fastest approach using the “diblook style”
-		uchar* lpSrc = src.data;
-		uchar* lpDst = dst.data;
-		int w = (int)src.step; // no dword alignment is done !!!
-		for (int i = 0; i < height; i++)
-			for (int j = 0; j < width; j++) {
-				uchar val = lpSrc[i * w + j];
-				lpDst[i * w + j] = 255 - val;
-			}
-
-		// Get the current time again and compute the time difference [s]
-		t = ((double)getTickCount() - t) / getTickFrequency();
-		// Print (in the console window) the processing time in [ms] 
-		printf("Time = %.3f [ms]\n", t * 1000);
-
-		imshow("input image", src);
-		imshow("negative image", dst);
-		waitKey();
-	}
-}
-
-void testColor2Gray()
-{
-	char fname[MAX_PATH];
-	while (openFileDlg(fname))
-	{
-		Mat src = imread(fname);
-
-		int height = src.rows;
-		int width = src.cols;
-
-		Mat dst = Mat(height, width, CV_8UC1);
-
-		// Asa se acceseaaza pixelii individuali pt. o imagine RGB 24 biti/pixel
-		// Varianta ineficienta (lenta)
-		for (int i = 0; i < height; i++)
-		{
-			for (int j = 0; j < width; j++)
-			{
-				Vec3b v3 = src.at<Vec3b>(i, j);
-				uchar b = v3[0];
-				uchar g = v3[1];
-				uchar r = v3[2];
-				dst.at<uchar>(i, j) = (r + g + b) / 3;
-			}
-		}
-
-		imshow("input image", src);
-		imshow("gray image", dst);
-		waitKey();
-	}
-}
-
-void testBGR2HSV()
-{
-	char fname[MAX_PATH];
-	while (openFileDlg(fname))
-	{
-		Mat src = imread(fname);
-		int height = src.rows;
-		int width = src.cols;
-
-		// Componentele d eculoare ale modelului HSV
-		Mat H = Mat(height, width, CV_8UC1);
-		Mat S = Mat(height, width, CV_8UC1);
-		Mat V = Mat(height, width, CV_8UC1);
-
-		// definire pointeri la matricele (8 biti/pixeli) folosite la afisarea componentelor individuale H,S,V
-		uchar* lpH = H.data;
-		uchar* lpS = S.data;
-		uchar* lpV = V.data;
-
-		Mat hsvImg;
-		cvtColor(src, hsvImg, CV_BGR2HSV);
-
-		// definire pointer la matricea (24 biti/pixeli) a imaginii HSV
-		uchar* hsvDataPtr = hsvImg.data;
-
-		for (int i = 0; i < height; i++)
-		{
-			for (int j = 0; j < width; j++)
-			{
-				int hi = i * width * 3 + j * 3;
-				int gi = i * width + j;
-
-				lpH[gi] = hsvDataPtr[hi] * 510 / 360;		// lpH = 0 .. 255
-				lpS[gi] = hsvDataPtr[hi + 1];			// lpS = 0 .. 255
-				lpV[gi] = hsvDataPtr[hi + 2];			// lpV = 0 .. 255
-			}
-		}
-
-		imshow("input image", src);
-		imshow("H", H);
-		imshow("S", S);
-		imshow("V", V);
-
-		waitKey();
-	}
-}
-
-void testResize()
-{
-	char fname[MAX_PATH];
-	while (openFileDlg(fname))
-	{
-		Mat src;
-		src = imread(fname);
-		Mat dst1, dst2;
-		//without interpolation
-		resizeImg(src, dst1, 320, false);
-		//with interpolation
-		resizeImg(src, dst2, 320, true);
-		imshow("input image", src);
-		imshow("resized image (without interpolation)", dst1);
-		imshow("resized image (with interpolation)", dst2);
-		waitKey();
-	}
-}
-
-void testCanny()
-{
-	char fname[MAX_PATH];
-	while (openFileDlg(fname))
-	{
-		Mat src, dst, gauss;
-		src = imread(fname, CV_LOAD_IMAGE_GRAYSCALE);
-		double k = 0.4;
-		int pH = 50;
-		int pL = (int)k * pH;
-		GaussianBlur(src, gauss, Size(5, 5), 0.8, 0.8);
-		Canny(gauss, dst, pL, pH, 3);
-		imshow("input image", src);
-		imshow("canny", dst);
-		waitKey();
-	}
-}
-
-void testVideoSequence()
-{
-	VideoCapture cap("Videos/rubic.avi"); // off-line video from file
-	//VideoCapture cap(0);	// live video from web cam
-	if (!cap.isOpened()) {
-		printf("Cannot open video capture device.\n");
-		waitKey(0);
-		return;
-	}
-
-	Mat edges;
-	Mat frame;
-	char c;
-
-	while (cap.read(frame))
-	{
-		Mat grayFrame;
-		cvtColor(frame, grayFrame, CV_BGR2GRAY);
-		Canny(grayFrame, edges, 40, 100, 3);
-		imshow("source", frame);
-		imshow("gray", grayFrame);
-		imshow("edges", edges);
-		c = cvWaitKey(0);  // waits a key press to advance to the next frame
-		if (c == 27) {
-			// press ESC to exit
-			printf("ESC pressed - capture finished\n");
-			break;  //ESC pressed
-		};
-	}
-}
-
-
-void testSnap()
-{
-	VideoCapture cap(0); // open the deafult camera (i.e. the built in web cam)
-	if (!cap.isOpened()) // openenig the video device failed
-	{
-		printf("Cannot open video capture device.\n");
-		return;
-	}
-
-	Mat frame;
-	char numberStr[256];
-	char fileName[256];
-
-	// video resolution
-	Size capS = Size((int)cap.get(CV_CAP_PROP_FRAME_WIDTH),
-		(int)cap.get(CV_CAP_PROP_FRAME_HEIGHT));
-
-	// Display window
-	const char* WIN_SRC = "Src"; //window for the source frame
-	namedWindow(WIN_SRC, CV_WINDOW_AUTOSIZE);
-	cvMoveWindow(WIN_SRC, 0, 0);
-
-	const char* WIN_DST = "Snapped"; //window for showing the snapped frame
-	namedWindow(WIN_DST, CV_WINDOW_AUTOSIZE);
-	cvMoveWindow(WIN_DST, capS.width + 10, 0);
-
-	char c;
-	int frameNum = -1;
-	int frameCount = 0;
-
-	for (;;)
-	{
-		cap >> frame; // get a new frame from camera
-		if (frame.empty())
-		{
-			printf("End of the video file\n");
-			break;
-		}
-
-		++frameNum;
-
-		imshow(WIN_SRC, frame);
-
-		c = cvWaitKey(10);  // waits a key press to advance to the next frame
-		if (c == 27) {
-			// press ESC to exit
-			printf("ESC pressed - capture finished");
-			break;  //ESC pressed
-		}
-		if (c == 115) { //'s' pressed - snapp the image to a file
-			frameCount++;
-			fileName[0] = NULL;
-			sprintf(numberStr, "%d", frameCount);
-			strcat(fileName, "Images/A");
-			strcat(fileName, numberStr);
-			strcat(fileName, ".bmp");
-			bool bSuccess = imwrite(fileName, frame);
-			if (!bSuccess)
-			{
-				printf("Error writing the snapped image\n");
-			}
-			else
-				imshow(WIN_DST, frame);
-		}
-	}
-
-}
-
-void MyCallBackFunc(int event, int x, int y, int flags, void* param)
-{
-	//More examples: http://opencvexamples.blogspot.com/2014/01/detect-mouse-clicks-and-moves-on-image.html
-	Mat* src = (Mat*)param;
-	if (event == CV_EVENT_LBUTTONDOWN)
-	{
-		printf("Pos(x,y): %d,%d  Color(RGB): %d,%d,%d\n",
-			x, y,
-			(int)(*src).at<Vec3b>(y, x)[2],
-			(int)(*src).at<Vec3b>(y, x)[1],
-			(int)(*src).at<Vec3b>(y, x)[0]);
-	}
-}
-
-void testMouseClick()
-{
-	Mat src;
-	// Read image from file 
-	char fname[MAX_PATH];
-	while (openFileDlg(fname))
-	{
-		src = imread(fname);
-		//Create a window
-		namedWindow("My Window", 1);
-
-		//set the callback function for any mouse event
-		setMouseCallback("My Window", MyCallBackFunc, &src);
-
-		//show the image
-		imshow("My Window", src);
-
-		// Wait until user press some key
-		waitKey(0);
-	}
-}
 
 /* Histogram display function - display a histogram using bars (simlilar to L3 / PI)
 Input:
@@ -412,184 +30,6 @@ hist_height - height of the histogram image
 Call example:
 showHistogram ("MyHist", hist_dir, 255, 200);
 */
-void showHistogram(const std::string& name, int* hist, const int  hist_cols, const int hist_height)
-{
-	Mat imgHist(hist_height, hist_cols, CV_8UC3, CV_RGB(255, 255, 255)); // constructs a white image
-
-	//computes histogram maximum
-	int max_hist = 0;
-	for (int i = 0; i < hist_cols; i++)
-		if (hist[i] > max_hist)
-			max_hist = hist[i];
-	double scale = 1.0;
-	scale = (double)hist_height / max_hist;
-	int baseline = hist_height - 1;
-
-	for (int x = 0; x < hist_cols; x++) {
-		Point p1 = Point(x, baseline);
-		Point p2 = Point(x, baseline - cvRound(hist[x] * scale));
-		line(imgHist, p1, p2, CV_RGB(0, 255, 0)); // histogram bins colored in magenta
-	}
-
-	imshow(name, imgHist);
-}
-
-void additiveGrey()
-{
-	char fname[MAX_PATH];
-	while (openFileDlg(fname))
-	{
-
-		Mat src = imread(fname, CV_LOAD_IMAGE_GRAYSCALE);
-		int height = src.rows;
-		int width = src.cols;
-
-		Mat dst = Mat(height, width, CV_8UC1);
-
-		for (int i = 0; i < height; i++)
-		{
-			for (int j = 0; j < width; j++)
-			{
-				uchar val = src.at<uchar>(i, j);
-				if (val + 200 > 255)
-				{
-					dst.at<uchar>(i, j) = 255;
-				}
-				else
-				{
-					dst.at<uchar>(i, j) = val + 200;
-				}
-			}
-		}
-
-		imshow("input image", src);
-		imshow("Additive Gray", dst);
-		waitKey();
-	}
-}
-
-void multiplicativeGrey()
-{
-	char fname[MAX_PATH];
-	while (openFileDlg(fname))
-	{
-
-		Mat src = imread(fname, CV_LOAD_IMAGE_GRAYSCALE);
-		int height = src.rows;
-		int width = src.cols;
-
-		Mat dst = Mat(height, width, CV_8UC1);
-
-		for (int i = 0; i < height; i++)
-		{
-			for (int j = 0; j < width; j++)
-			{
-				uchar val = src.at<uchar>(i, j);
-				if (2 * val > 255)
-				{
-					dst.at<uchar>(i, j) = 255;
-				}
-				else
-				{
-					dst.at<uchar>(i, j) = 2 * val;
-				}
-			}
-		}
-
-		imshow("input image", src);
-		imshow("Additive Gray", dst);
-		waitKey();
-	}
-}
-
-void color256()
-{
-	int height = 256;
-	int width = 256;
-
-	Mat dst = Mat(height, width, CV_8UC3);
-
-	for (int i = 0; i < height; i++)
-	{
-		for (int j = 0; j < width; j++)
-		{
-			Vec3b pixel = dst.at<Vec3b>(i, j);
-			if (i >= 0 && i <= 128 && j >= 0 && j <= 128)
-			{
-				pixel[0] = 255;
-				pixel[1] = 255;
-				pixel[2] = 255;
-			}
-			if (i >= 0 && i <= 128 && j >= 129 && j <= 256)
-			{
-				pixel[0] = 0;
-				pixel[1] = 0;
-				pixel[2] = 255;
-			}
-			if (i >= 129 && i <= 256 && j >= 0 && j <= 128)
-			{
-				pixel[0] = 0;
-				pixel[1] = 255;
-				pixel[2] = 0;
-			}
-			if (i >= 129 && i <= 256 && j >= 129 && j <= 256)
-			{
-				pixel[0] = 0;
-				pixel[1] = 255;
-				pixel[2] = 255;
-			}
-			dst.at<Vec3b>(i, j) = pixel;
-		}
-	}
-	imshow("Colored areas", dst);
-	waitKey();
-}
-
-void matrixInverse() {
-	float v[9] = { 0, 1, 2,
-				   3, 4, 1,
-				   1, 1, 2 };
-
-	Mat M(3, 3, CV_32FC1, v);
-
-	std::cout << M.inv() << std::endl;
-	getchar();
-	getchar();
-}
-// LAB2
-
-void threeColors()
-{
-	char fname[MAX_PATH];
-	while (openFileDlg(fname))
-	{
-		Mat src = imread(fname, CV_LOAD_IMAGE_COLOR);
-		int height = src.rows;
-		int width = src.cols;
-
-		Mat dstR = Mat(height, width, CV_8UC1);
-		Mat dstG = Mat(height, width, CV_8UC1);
-		Mat dstB = Mat(height, width, CV_8UC1);
-
-		for (int i = 0; i < height; i++)
-		{
-			for (int j = 0; j < width; j++)
-			{
-				Vec3b pixel = src.at<Vec3b>(i, j);
-
-				dstR.at<uchar>(i, j) = pixel[2];
-				dstG.at<uchar>(i, j) = pixel[1];
-				dstB.at<uchar>(i, j) = pixel[0];
-			}
-		}
-
-		imshow("input image", src);
-		imshow("R", dstR);
-		imshow("G", dstG);
-		imshow("B", dstB);
-		waitKey();
-	}
-}
 
 Mat colorToGreyscale(Mat src)
 {
@@ -638,6 +78,91 @@ Mat greyscaleToBlackWhite(Mat src, int threshold)
 			}
 		}
 	}
+	return dst;
+}
+
+bool isInside(Mat img, int i, int j)
+{
+	int rows = img.rows;
+	int cols = img.cols;
+
+	if (i >= 0 && i < rows && j >= 0 && j < cols)
+		return true;
+
+	return false;
+}
+
+Mat computeMultiple(Mat src, float* FDP, int* histogram)
+{
+	int height = src.rows;
+	int width = src.cols;
+	Mat dst = Mat(height, width, CV_8UC1);
+
+	for (int i = 0; i < height; i++)
+	{
+		for (int j = 0; j < width; j++)
+		{
+			uchar valSrc = src.at<uchar>(i, j);
+			FDP[(int)valSrc] += 1;
+		}
+	}
+
+	// Calculation of the maxima
+	std::vector<int> maxima;
+
+	for (int i = 0; i < 256; i++)
+	{
+		FDP[i] /= (256 * 256);
+	}
+
+	int WH = 5;
+	float TH = 0.0003;
+
+	maxima.push_back(0);
+	for (int k = WH; k <= 255 - WH; k++)
+	{
+		float avg = 0;
+		bool isGreater = true;
+
+		for (int l = k - WH; l <= k + WH; l++)
+		{
+			avg += FDP[l];
+			if (FDP[k] < FDP[l])
+				isGreater = false;
+		}
+
+		avg /= (2 * WH + 1);
+		if (FDP[k] > (avg + TH) && isGreater)
+		{
+			maxima.push_back(k);
+		}
+	}
+	maxima.push_back(255);
+
+	for (int i = 0; i < height; i++)
+	{
+		for (int j = 0; j < width; j++)
+		{
+			uchar valSrc = src.at<uchar>(i, j);
+
+			int minDistance = INT_MAX;
+			int value = 0;
+
+			for (int k = 0; k < maxima.size(); k++)
+			{
+				int current = std::abs(valSrc - maxima.at(k));
+				if (current < minDistance)
+				{
+					minDistance = current;
+					value = maxima.at(k);
+				}
+			}
+			dst.at<uchar>(i, j) = value;
+			histogram[value]++;
+		}
+	}
+	free(FDP);
+	FDP = NULL;
 	return dst;
 }
 
@@ -720,318 +245,6 @@ void rgbtohsv()
 	}
 }
 
-bool isInside(Mat img, int i, int j)
-{
-	int rows = img.rows;
-	int cols = img.cols;
-
-	if (i >= 0 && i < rows && j >= 0 && j < cols)
-		return true;
-
-	return false;
-}
-
-void computeHistogram()
-{
-	char fname[MAX_PATH];
-	int* histogram = (int*)calloc(256, sizeof(int));
-
-	while (openFileDlg(fname))
-	{
-		Mat src = imread(fname, CV_LOAD_IMAGE_GRAYSCALE);
-		int height = src.rows;
-		int width = src.cols;
-
-		for (int i = 0; i < height; i++)
-		{
-			for (int j = 0; j < width; j++)
-			{
-				uchar valSrc = src.at<uchar>(i, j);
-				histogram[(int)valSrc]++;
-
-			}
-		}
-
-		for (int i = 0; i < 256; i++)
-		{
-			std::cout << i << ": " << histogram[i] << std::endl;
-		}
-
-		imshow("input image", src);
-		waitKey();
-	}
-	free(histogram);
-	histogram = NULL;
-}
-
-void computeFDP()
-{
-	char fname[MAX_PATH];
-	float* FDP = (float*)calloc(256, sizeof(float));
-
-	while (openFileDlg(fname))
-	{
-		Mat src = imread(fname, CV_LOAD_IMAGE_GRAYSCALE);
-		int height = src.rows;
-		int width = src.cols;
-
-		for (int i = 0; i < height; i++)
-		{
-			for (int j = 0; j < width; j++)
-			{
-				uchar valSrc = src.at<uchar>(i, j);
-				FDP[(int)valSrc] += 1;
-			}
-		}
-
-		for (int i = 0; i < 256; i++)
-		{
-			FDP[i] /= (height * width);
-			std::cout << i << ": " << FDP[i] << std::endl;
-		}
-
-		imshow("input image", src);
-		waitKey();
-	}
-	free(FDP);
-	FDP = NULL;
-}
-
-void computeHistogramAndShowHistogram()
-{
-	char fname[MAX_PATH];
-	int* histogram = (int*)calloc(256, sizeof(int));
-
-	while (openFileDlg(fname))
-	{
-		Mat src = imread(fname, CV_LOAD_IMAGE_GRAYSCALE);
-		int height = src.rows;
-		int width = src.cols;
-
-		for (int i = 0; i < height; i++)
-		{
-			for (int j = 0; j < width; j++)
-			{
-				uchar valSrc = src.at<uchar>(i, j);
-				histogram[(int)valSrc]++;
-			}
-		}
-
-		showHistogram("Histogram", histogram, 255, 250);
-
-		imshow("input image", src);
-		waitKey();
-	}
-	free(histogram);
-	histogram = NULL;
-}
-
-void computeReducedAccHistogram(int m)
-{
-	if (m >= 2 && 256 % m == 0)
-	{
-		char fname[MAX_PATH];
-		int* histogram = (int*)calloc(m, sizeof(int));
-
-		while (openFileDlg(fname))
-		{
-			Mat src = imread(fname, CV_LOAD_IMAGE_GRAYSCALE);
-			int height = src.rows;
-			int width = src.cols;
-
-			for (int i = 0; i < height; i++)
-			{
-				for (int j = 0; j < width; j++)
-				{
-					uchar valSrc = src.at<uchar>(i, j);
-					int bucket = valSrc / m;
-					histogram[bucket]++;
-				}
-			}
-
-			showHistogram("Histogram", histogram, m, 255);
-
-			imshow("input image", src);
-			waitKey();
-		}
-		free(histogram);
-		histogram = NULL;
-	}
-}
-
-Mat computeMultiple(Mat src, float* FDP, int* histogram)
-{
-	int height = src.rows;
-	int width = src.cols;
-	Mat dst = Mat(height, width, CV_8UC1);
-
-	for (int i = 0; i < height; i++)
-	{
-		for (int j = 0; j < width; j++)
-		{
-			uchar valSrc = src.at<uchar>(i, j);
-			FDP[(int)valSrc] += 1;
-		}
-	}
-
-	// Calculation of the maxima
-	std::vector<int> maxima;
-
-	for (int i = 0; i < 256; i++)
-	{
-		FDP[i] /= (256 * 256);
-	}
-
-	int WH = 5;
-	float TH = 0.0003;
-
-	maxima.push_back(0);
-	for (int k = WH; k <= 255 - WH; k++)
-	{
-		float avg = 0;
-		bool isGreater = true;
-
-		for (int l = k - WH; l <= k + WH; l++)
-		{
-			avg += FDP[l];
-			if (FDP[k] < FDP[l])
-				isGreater = false;
-		}
-
-		avg /= (2 * WH + 1);
-		if (FDP[k] > (avg + TH) && isGreater)
-		{
-			maxima.push_back(k);
-		}
-	}
-	maxima.push_back(255);
-
-	for (int i = 0; i < height; i++)
-	{
-		for (int j = 0; j < width; j++)
-		{
-			uchar valSrc = src.at<uchar>(i, j);
-
-			int minDistance = INT_MAX;
-			int value = 0;
-
-			for (int k = 0; k < maxima.size(); k++)
-			{
-				int current = std::abs(valSrc - maxima.at(k));
-				if (current < minDistance)
-				{
-					minDistance = current;
-					value = maxima.at(k);
-				}
-			}
-			dst.at<uchar>(i, j) = value;
-			histogram[value]++;
-		}
-	}
-	free(FDP);
-	FDP = NULL;
-	return dst;
-}
-
-void computeMultipleWithFloydSteinberg()
-{
-	char fname[MAX_PATH];
-	float* FDP = (float*)calloc(256, sizeof(float));
-	int* histogram = (int*)calloc(256, sizeof(int));
-
-	while (openFileDlg(fname))
-	{
-		Mat src = imread(fname, CV_LOAD_IMAGE_GRAYSCALE);
-		int height = src.rows;
-		int width = src.cols;
-		Mat dst = Mat(height, width, CV_8UC1);
-		Mat dst1 = Mat(height, width, CV_8UC1);
-
-		for (int i = 0; i < height; i++)
-		{
-			for (int j = 0; j < width; j++)
-			{
-				uchar valSrc = src.at<uchar>(i, j);
-				FDP[(int)valSrc] += 1;
-			}
-		}
-
-		// Calculation of the maxima
-		std::vector<int> maxima;
-
-		for (int i = 0; i < 256; i++)
-		{
-			FDP[i] /= (256 * 256);
-		}
-
-		int WH = 5;
-		float TH = 0.0003;
-
-		maxima.push_back(0);
-		for (int k = WH; k <= 255 - WH; k++)
-		{
-			float avg = 0;
-			bool isGreater = true;
-
-			for (int l = k - WH; l <= k + WH; l++)
-			{
-				avg += FDP[l];
-				if (FDP[k] < FDP[l])
-					isGreater = false;
-			}
-
-			avg /= (2 * WH + 1);
-			if (FDP[k] > (avg + TH) && isGreater)
-			{
-				maxima.push_back(k);
-			}
-		}
-		maxima.push_back(255);
-
-		for (int i = 0; i < height; i++)
-		{
-			for (int j = 0; j < width; j++)
-			{
-				uchar valSrc = src.at<uchar>(i, j);
-
-				int minDistance = INT_MAX;
-				int value = 0;
-
-				for (int k = 0; k < maxima.size(); k++)
-				{
-					int current = std::abs(valSrc - maxima.at(k));
-					if (current < minDistance)
-					{
-						minDistance = current;
-						value = maxima.at(k);
-					}
-				}
-
-				dst.at<uchar>(i, j) = value;
-
-				uchar oldVal = src.at<uchar>(i, j);
-				uchar newVal = value;
-				float error = oldVal - newVal;
-
-				dst1.at<uchar>(i, j) = newVal;
-
-				dst1.at<uchar>(i, j + 1) = max(min(dst1.at<uchar>(i, j + 1) + 7 * error / 16, 255), 0);
-				dst1.at<uchar>(i + 1, j - 1) = max(min(dst1.at<uchar>(i + 1, j - 1) + 3 * error / 16, 255), 0);
-				dst1.at<uchar>(i + 1, j) = max(min(dst1.at<uchar>(i + 1, j) + 5 * error / 16, 255), 0);
-				dst1.at<uchar>(i + 1, j + 1) = max(min(dst1.at<uchar>(i + 1, j + 1) + error / 16, 255), 0);
-
-				histogram[value]++;
-			}
-		}
-
-		imshow("output image Floyd", dst1);
-		imshow("output image", dst);
-		imshow("input image", src);
-		waitKey();
-	}
-	free(FDP);
-	FDP = NULL;
-}
 
 //auxiliary HSV to RGB function
 void HSVtoRGB(float H, float S, float V, uchar* R, uchar* G, uchar* B) {
@@ -2291,7 +1504,6 @@ Mat close(Mat src)
 	return erode(temp);
 }
 
-
 Mat morphOperation(Mat src, int opcode, int numberOfTimes)
 {
 	int height = src.rows;
@@ -3037,7 +2249,7 @@ Mat filterRoundObjects(Mat src)
 					float tr = thinessRatio(&src, currentColor);
 					float a = area(&src, currentColor);
 					std::cout << tr << " " << currentColor << std::endl;
-					if (tr > 0.7 && a > 400)
+					if (tr > 0.7 && a > 50)
 					{
 						colorMap[currentColor] = false;
 						dst.at<uchar>(i, j) = currentColor;
@@ -3062,6 +2274,25 @@ Mat filterRoundObjects(Mat src)
 	return dst;
 }
 
+Mat specularityFix(Mat src)
+{
+	int height = src.rows;
+	int width = src.cols;
+
+	Mat dst = Mat::zeros(height, width, CV_8UC1);
+
+	for (int i = 0; i < height; i++)
+	{
+		for (int j = 0; j < width; j++)
+		{
+			if (src.at<uchar>(i, j) > 230 && isInside(src, i - 1, j) && isInside(src, i, j - 1))
+				dst.at<uchar>(i, j) = dst.at<uchar>(i - 1, j) / 2 + dst.at<uchar>(i, j - 1) / 2;
+			else
+				dst.at<uchar>(i, j) = src.at<uchar>(i, j);
+		}
+	}
+	return dst;
+}
 
 ////
 int di_4[4] = { -1,0,1,0 };
@@ -3161,12 +2392,14 @@ Mat markPolyp(Mat source)
 
 	// Negative
 	int s = 0;
-	imshow("SOURCE", src);
+	float ai = averageIntensity(src);
 
 	dsts[s] = histogramEqualization(src);
 	s++;
-
-	dsts[s] = gammaCorrection(dsts[s - 1], 3.45);
+	
+	float v = (210 / ai);
+	std::cout << "gamma: " << v << std::endl;
+	dsts[s] = gammaCorrection(dsts[s - 1], v);
 	s++;
 
 	dsts[s] = automaticGlobalBinarization(dsts[s - 1]);
@@ -3186,8 +2419,11 @@ Mat markPolyp(Mat source)
 	Mat color1 = bfsLabeling((dsts + s - 1), 8);
 	Mat segmentedImage = filterRoundObjects(color1);
 
-	imshow("s", brightnessAdjustment(color1, 60));
+
+	/*
+	imshow("s", brightnessAdjustment(segmentedImage, 60));
 	waitKey(0);
+	*/
 
 	int counter = 0;
 	std::map<uchar, BoundingBox> boundingBoxes;
@@ -3234,10 +2470,11 @@ Mat markPolyp(Mat source)
 	{
 		BoundingBox box = boundingBoxes[x];
 		float ar = aspectRatio(box.xMax, box.xMin, box.yMax, box.yMin);
+		std::cout << "ar " << ar << std::endl;
 		if (ar < 0.9 || ar > 1.21)
 			boundingBoxes.erase(x);
-
 	}
+	
 	std::cout << "Identified polyps: " << boundingBoxes.size() << "\n";
 
 	Mat markedPoints = Mat::zeros(height, width, CV_8UC1);
@@ -3262,18 +2499,6 @@ Mat markPolyp(Mat source)
 			}
 		}
 	}
-	
-
-	//s++;
-
-	/*
-	for (int i = 0; i < s; i++)
-	{
-		char c[4];
-		_itoa(i, c, 10);
-		imshow(c, dsts[i]);
-	}
-	*/
 
 	return dst;
 }
@@ -3289,8 +2514,9 @@ int main()
 		src = imread(fname, CV_LOAD_IMAGE_COLOR);
 	}
 
+	imshow("SOURCE", src);
 	dst = markPolyp(src);
-	imshow("Final", dst);
+	imshow("MARKED SOURCE", dst);
 	waitKey();
 	return 0;
 }

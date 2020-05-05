@@ -6,6 +6,8 @@
 #include <random>
 #include <stack>
 #include <fstream>
+#define MIN_AR 0.9
+#define MAX_AR 1.21
 
 
 using namespace cv;
@@ -20,16 +22,14 @@ typedef struct _boundingBox
 	int yMax;
 }BoundingBox;
 
+int di_4[4] = { -1,0,1,0 };
+int dj_4[4] = { 0,-1,0,1 };
 
-/* Histogram display function - display a histogram using bars (simlilar to L3 / PI)
-Input:
-name - destination (output) window name
-hist - pointer to the vector containing the histogram values
-hist_cols - no. of bins (elements) in the histogram = histogram image width
-hist_height - height of the histogram image
-Call example:
-showHistogram ("MyHist", hist_dir, 255, 200);
-*/
+int di[4] = { -1,-1,-1,0 };
+int dj[4] = { -1,0,1,-1 };
+
+int di_8[8] = { -1,-1,0,1,1,1,0,-1 };
+int dj_8[8] = { 0,-1,-1,-1,0,1,1,1 };
 
 Mat colorToGreyscale(Mat src)
 {
@@ -166,468 +166,11 @@ Mat computeMultiple(Mat src, float* FDP, int* histogram)
 	return dst;
 }
 
-void rgbtohsv()
-{
-	char fname[MAX_PATH];
-	while (openFileDlg(fname))
-	{
-		Mat src = imread(fname, CV_LOAD_IMAGE_COLOR);
-		int height = src.rows;
-		int width = src.cols;
-
-		Mat dstH = Mat(height, width, CV_8UC1);
-		Mat dstS = Mat(height, width, CV_8UC1);
-		Mat dstV = Mat(height, width, CV_8UC1);
-
-
-		for (int i = 0; i < height; i++)
-		{
-			for (int j = 0; j < width; j++)
-			{
-				Vec3b pixel = src.at<Vec3b>(i, j);
-
-				float r = (float)pixel[2] / 255;
-				float g = (float)pixel[1] / 255;
-				float b = (float)pixel[0] / 255;
-
-				float M = max(r, g);
-				M = max(M, b);
-
-				float m = min(r, g);
-				m = min(m, b);
-
-				float C = M - m;
-
-				// value
-				float V = M;
-
-				// saturation
-				float S = 0;
-
-				if (V != 0)
-				{
-					S = C / V;
-				}
-
-				// hue
-				float H = 0;
-				if (C != 0)
-				{
-					if (M == r)
-						H = 60 * (g - b) / C;
-					if (M == g)
-						H = 120 + 60 * (b - r) / C;
-					if (M == b)
-						H = 240 + 60 * (r - g) / C;
-				}
-				else
-					H = 0;
-
-				if (H < 0)
-					H += 360;
-
-				float H_norm = H * 255 / 360;
-				float S_norm = S * 255;
-				float V_norm = V * 255;
-
-				dstH.at<uchar>(i, j) = H_norm;
-				dstS.at<uchar>(i, j) = S_norm;
-				dstV.at<uchar>(i, j) = V_norm;
-
-			}
-		}
-
-		imshow("input image", src);
-		imshow("H", dstH);
-		imshow("S", dstS);
-		imshow("V", dstV);
-		waitKey();
-	}
-}
-
-
-//auxiliary HSV to RGB function
-void HSVtoRGB(float H, float S, float V, uchar* R, uchar* G, uchar* B) {
-
-	float C = S * V;
-	float X = C * (1 - abs(fmod(H / 60.0, 2) - 1));
-	float m = V - C;
-	float Rs, Gs, Bs;
-
-	if (H >= 0 && H < 60)
-	{
-		Rs = C;
-		Gs = X;
-		Bs = 0;
-	}
-	else if (H >= 60 && H < 120)
-	{
-		Rs = X;
-		Gs = C;
-		Bs = 0;
-	}
-	else if (H >= 120 && H < 180)
-	{
-		Rs = 0;
-		Gs = C;
-		Bs = X;
-	}
-	else if (H >= 180 && H < 240)
-	{
-		Rs = 0;
-		Gs = X;
-		Bs = C;
-	}
-	else if (H >= 240 && H < 300)
-	{
-		Rs = X;
-		Gs = 0;
-		Bs = C;
-	}
-	else
-	{
-		Rs = C;
-		Gs = 0;
-		Bs = X;
-	}
-
-	*R = (uchar)((Rs + m) * 255);
-	*G = (uchar)((Gs + m) * 255);
-	*B = (uchar)((Bs + m) * 255);
-}
-
-void reduceHue()
-{
-	char fname[MAX_PATH];
-	while (openFileDlg(fname))
-	{
-		Mat src = imread(fname, CV_LOAD_IMAGE_COLOR);
-		int height = src.rows;
-		int width = src.cols;
-
-		float** rawH = (float**)calloc(height, sizeof(float*));
-		for (int i = 0; i < height; i++)
-		{
-			*(rawH + i) = (float*)calloc(width, sizeof(float));
-		}
-
-		float** rawS = (float**)calloc(height, sizeof(float*));
-		for (int i = 0; i < height; i++)
-		{
-			*(rawS + i) = (float*)calloc(width, sizeof(float));
-		}
-
-		float** rawV = (float**)calloc(height, sizeof(float*));
-		for (int i = 0; i < height; i++)
-		{
-			*(rawV + i) = (float*)calloc(width, sizeof(float));
-		}
-
-
-		Mat dstH = Mat(height, width, CV_8UC1);
-		Mat dstS = Mat(height, width, CV_8UC1);
-		Mat dstV = Mat(height, width, CV_8UC1);
-
-		Mat dst = Mat(height, width, CV_8UC3);
-
-
-		for (int i = 0; i < height; i++)
-		{
-			for (int j = 0; j < width; j++)
-			{
-				Vec3b pixel = src.at<Vec3b>(i, j);
-
-				float r = (float)pixel[2] / 255;
-				float g = (float)pixel[1] / 255;
-				float b = (float)pixel[0] / 255;
-
-				float M = max(r, g);
-				M = max(M, b);
-
-				float m = min(r, g);
-				m = min(m, b);
-
-				float C = M - m;
-
-				// value
-				float V = M;
-
-				// saturation
-				float S = 0;
-
-				if (V != 0)
-				{
-					S = C / V;
-				}
-
-				// hue
-				float H = 0;
-				if (C != 0)
-				{
-					if (M == r)
-						H = 60 * (g - b) / C;
-					if (M == g)
-						H = 120 + 60 * (b - r) / C;
-					if (M == b)
-						H = 240 + 60 * (r - g) / C;
-				}
-				else
-					H = 0;
-
-				if (H < 0)
-					H += 360;
-
-				rawH[i][j] = H;
-				rawS[i][j] = S;
-				rawV[i][j] = V;
-
-				float H_norm = H * 255 / 360;
-				float S_norm = S * 255;
-				float V_norm = V * 255;
-
-				dstH.at<uchar>(i, j) = H_norm;
-				dstS.at<uchar>(i, j) = S_norm;
-				dstV.at<uchar>(i, j) = V_norm;
-			}
-		}
-
-		int* hist_dir = (int*)calloc(256, sizeof(int));
-		float* FDP = (float*)calloc(256, sizeof(float));
-		dstH = computeMultiple(dstH, FDP, hist_dir);
-
-		imshow("Before", src);
-		for (int i = 0; i < height; i++)
-		{
-			for (int j = 0; j < width; j++)
-			{
-				Vec3b pixel;
-
-				uchar R = 255;
-				uchar G = 255;
-				uchar B = 255;
-
-				float H = ((float)dstH.at<uchar>(i, j) * 360) / 255;
-
-				HSVtoRGB(H, rawS[i][j], rawV[i][j], &R, &G, &B);
-
-				pixel[0] = B;
-				pixel[1] = G;
-				pixel[2] = R;
-
-				dst.at<Vec3b>(i, j) = pixel;
-			}
-		}
-
-		imshow("After", dst);
-		waitKey();
-	}
-}
-
 bool testColor(Vec3b a, Vec3b b)
 {
 	return (a[0] == b[0] &&
 		a[1] == b[1] &&
 		a[2] == b[2]);
-}
-
-void onMouse(int event, int x, int y, int flags, void* param)
-{
-	Mat* src = (Mat*)param;
-	Mat source = (*src).clone();
-	int height = source.rows;
-	int width = source.cols;
-
-
-	if (event == CV_EVENT_LBUTTONDOWN)
-	{
-		Vec3b white(255, 255, 255);
-		Vec3b customColor(255, 0, 255);
-		Mat dstContour = Mat(height, width, CV_8UC3);
-		Mat hor = Mat(height, width, CV_8UC3);
-		Mat ver = Mat(height, width, CV_8UC3);
-		for (int i = 0; i < height; i++)
-		{
-			for (int j = 0; j < width; j++)
-			{
-				dstContour.at<Vec3b>(i, j) = white;
-			}
-		}
-
-		printf("Pos(x,y): %d,%d  Color(RGB): %d,%d,%d\n",
-			x, y,
-			(int)(*src).at<Vec3b>(y, x)[2],
-			(int)(*src).at<Vec3b>(y, x)[1],
-			(int)(*src).at<Vec3b>(y, x)[0]);
-
-		// Getting the color of the object
-		Vec3b pixel = source.at<Vec3b>(y, x);
-
-		// Compute area
-		float area = 0.0f;
-		// Compute mass center
-		int rC = 0, cC = 0;
-		// Compute perimeter
-		int perimeter = 0;
-		// Compute aspect ratio
-		float aspectRatio = 0;
-		// Compute projections
-		int* vertical = (int*)calloc(height, sizeof(int));
-		int* horizontal = (int*)calloc(width, sizeof(int));
-
-
-		int xMax = INT_MIN, xMin = INT_MAX, yMax = INT_MIN, yMin = INT_MAX;
-
-		for (int i = 0; i < height; i++)
-		{
-			for (int j = 0; j < width; j++)
-			{
-				if (testColor(pixel, source.at<Vec3b>(i, j)))
-				{
-					// Area
-					area += 1;
-
-					// Mass center
-					rC += i;
-					cC += j;
-
-					// Perimeter
-					Vec3b currentPixel = source.at<Vec3b>(i, j);
-					for (int k = i - 1; k <= i + 1; k++)
-					{
-						for (int l = j - 1; l <= j + 1; l++)
-						{
-							if (isInside(source, k, l) && !testColor(currentPixel, source.at<Vec3b>(k, l)))
-							{
-								dstContour.at<Vec3b>(i, j) = currentPixel;
-								perimeter++;
-							}
-						}
-					}
-
-					// Aspect ratio
-					if (testColor(pixel, currentPixel))
-					{
-						yMax = (i > yMax) ? i : yMax;
-						yMin = (i < yMin) ? i : yMin;
-						xMax = (j > xMax) ? j : xMax;
-						xMin = (j < xMin) ? j : xMin;
-					}
-
-					// Projections
-					if (testColor(currentPixel, pixel))
-					{
-						vertical[i]++;
-						horizontal[j]++;
-					}
-
-				}
-			}
-		}
-		rC /= area;
-		cC /= area;
-
-		std::cout << "Area: " << area << std::endl;
-		std::cout << "Mass center: (" << cC << "," << rC << ")" << std::endl;
-
-		// Compute line
-		float num = 0, den = 0, t1Den = 0, t2Den = 0, phi = 0, slope = 0, b = 0;
-		for (int i = 0; i < height; i++)
-		{
-			for (int j = 0; j < width; j++)
-			{
-				Vec3b currentPixel = source.at<Vec3b>(i, j);
-
-				if (testColor(pixel, currentPixel))
-				{
-					num += (i - rC) * (j - cC);
-					t1Den += (j - cC) * (j - cC);
-					t2Den += (i - rC) * (i - rC);
-				}
-			}
-		}
-		num *= 2;
-		den = t1Den - t2Den;
-		phi = atan2(num, den) / 2;
-		slope = tan(phi);
-
-		// Point 1
-		int x1, y1;
-		// Point 2
-		int x2, y2;
-
-		b = -slope * cC + rC;
-
-		x1 = cC;
-		x2 = cC;
-
-		Vec3b color(255, 0, 255);
-
-		source.at<Vec3b>(rC, cC) = color;
-
-		int lastX1 = x1, lastX2 = x2;
-		int error = 5;
-		do
-		{
-			lastX1 = x1;
-			lastX2 = x2;
-
-			y1 = (slope * x1 + b > 0 && slope * x1 + b < height) ? slope * x1 + b : y1;
-			y2 = (slope * x2 + b > 0 && slope * x2 + b < height) ? slope * x2 + b : y2;
-
-			if (x1 < width && y1 > error && y1 < height - error)
-				x1++;
-
-			if (x2 > 0 && y2 > error && y2 < height - error)
-				x2--;
-
-		} while ((x1 < width || x2 > 0) && (lastX1 != x1 || lastX2 != x2));
-
-		std::cout << "Line: P1(" << x1 << "," << y1 << "); P2(" << x2 << "," << y2 << ")" << std::endl;
-		std::cout << "Perimeter: " << perimeter << std::endl;
-
-		Point P1(x1, y1);
-		Point P2(x2, y2);
-		Point C(cC, rC);
-
-		Scalar s(0, 125, 255);
-
-		// Draw center
-		cv::circle(source, C, 3, s, 3);
-
-		// Draw line
-		cv::line(source, P1, P2, s);
-
-		float thinness = 4 * PI * (area / (perimeter * perimeter));
-		std::cout << "Thinness ratio: " << thinness << std::endl;
-
-		aspectRatio = (float)(xMax - xMin + 1) / (float)(yMax - yMin + 1);
-		std::wcout << "Aspect ratio: " << aspectRatio << std::endl;
-
-		// Projections
-		for (int i = 0; i < height; i++)
-		{
-			for (int j = 0; j < vertical[i]; j++)
-			{
-				ver.at<Vec3b>(i, j) = white;
-			}
-		}
-
-		for (int j = 0; j < width; j++)
-		{
-			for (int i = 0; i < horizontal[j]; i++)
-			{
-				hor.at<Vec3b>(i, j) = white;
-			}
-		}
-
-		imshow("Axis of elongation", source);
-		imshow("Contour", dstContour);
-		imshow("Vertical projecton", ver);
-		imshow("Horizontal projecton", hor);
-
-		waitKey(0);
-
-	}
 }
 
 int area(Mat* src, uchar objectColor) {
@@ -642,7 +185,6 @@ int area(Mat* src, uchar objectColor) {
 	//printf("[Area] for object with color [%d,%d,%d]: %d\n", objectColor[2], objectColor[1], objectColor[0], area);
 	return area;
 }
-
 
 int Ni[4] = { -1, 0, 1, 0 };
 int Nj[4] = { 0, -1, 0, 1 };
@@ -771,652 +313,6 @@ bool checkPhi(Mat src, Vec3b color, float phi_LOW, float phi_HIGH)
 	if (phi > phi_LOW && phi < phi_HIGH)
 		return true;
 	return false;
-}
-
-void checkObjects(Mat src, int TH_area, float phi_LOW, float phi_HIGH)
-{
-	int height = src.rows;
-	int width = src.cols;
-
-	std::vector<Vec3b> colorVector;
-
-	// Get distinct color objects
-	for (int i = 0; i < height; i++)
-	{
-		for (int j = 0; j < width; j++)
-		{
-			Vec3b color = src.at<Vec3b>(i, j);
-			bool exists = false;
-			int k = 0;
-
-			while (k < colorVector.size() && exists == false)
-			{
-				if (testColor(color, colorVector.at(k)))
-				{
-					exists = true;
-				}
-				k++;
-			}
-
-			if (exists == false)
-			{
-				colorVector.push_back(color);
-			}
-		}
-	}
-
-	// Checking objects
-	std::vector<Vec3b> goodColorVector;
-
-	for (Vec3b color : colorVector)
-	{
-		if (checkArea(src, color, TH_area) && checkPhi(src, color, phi_LOW, phi_HIGH))
-		{
-			goodColorVector.push_back(color);
-		}
-	}
-
-	Mat dst = Mat(height, width, CV_8UC3);
-	Vec3b white(255, 255, 255);
-	Vec3b black(0, 0, 0);
-
-	for (int i = 0; i < height; i++)
-	{
-		for (int j = 0; j < width; j++)
-		{
-			dst.at<Vec3b>(i, j) = white;
-		}
-	}
-
-	for (int i = 0; i < height; i++)
-	{
-		for (int j = 0; j < width; j++)
-		{
-			Vec3b currentColor = src.at<Vec3b>(i, j);
-
-			for (Vec3b color : goodColorVector)
-			{
-				if (testColor(color, currentColor))
-				{
-					dst.at<Vec3b>(i, j) = currentColor;
-				}
-			}
-		}
-	}
-
-
-	imshow("Old image", src);
-	imshow("New image", dst);
-	waitKey(0);
-}
-
-void computeTraits(Mat src)
-{
-	//Create a window
-	namedWindow("My Window", 1);
-
-	//set the callback function for any mouse event
-	setMouseCallback("My Window", onMouse, &src);
-
-	//show the image
-	imshow("My Window", src);
-
-	// Wait until user press some key
-	waitKey(0);
-}
-
-Mat labeledObjectsMatrix(Mat src, int vecType)
-{
-	int width = src.cols;
-	int height = src.rows;
-
-	int label = 0;
-	Mat source = greyscaleToBlackWhite(src, 250);
-	Mat labels = Mat::zeros(height, width, CV_8UC1);
-
-
-	for (int i = 0; i < height; i++)
-	{
-		for (int j = 0; j < width; j++)
-		{
-			if (source.at<uchar>(i, j) == 0 && labels.at<uchar>(i, j) == 0)
-			{
-				label += 10;
-				std::queue<Point> Q;
-				labels.at<uchar>(i, j) = label;
-				Point p(j, i);
-				Q.push(p);
-
-				while (!Q.empty())
-				{
-					Point q = Q.front();
-					Q.pop();
-
-					if (vecType == 1)
-					{
-						int di[8] = { -1, 0, 1, 1, 1, 0, -1, -1 };
-						int dj[8] = { -1, -1, -1, 0, 1, 1, 1, 0 };
-						for (int k = 0; k < 8; k++)
-						{
-							if (isInside(source, q.y + di[k], q.x + dj[k]))
-							{
-								if (source.at<uchar>(q.y + di[k], q.x + dj[k]) == 0 && labels.at<uchar>(q.y + di[k], q.x + dj[k]) == 0)
-								{
-									labels.at<uchar>(q.y + di[k], q.x + dj[k]) = label;
-									Point neighbor(q.x + dj[k], q.y + di[k]);
-									Q.push(neighbor);
-								}
-							}
-						}
-					}
-					else if (vecType == 2)
-					{
-						int di[4] = { -1, 0, 1, 0 };
-						int dj[4] = { 0, -1, 0, 1 };
-						for (int k = 0; k < 4; k++)
-						{
-							if (isInside(source, q.y + di[k], q.x + dj[k]))
-							{
-								if (source.at<uchar>(q.y + di[k], q.x + dj[k]) == 0 && labels.at<uchar>(q.y + di[k], q.x + dj[k]) == 0)
-								{
-									labels.at<uchar>(q.y + di[k], q.x + dj[k]) = label;
-									Point neighbor(q.x + dj[k], q.y + di[k]);
-									Q.push(neighbor);
-								}
-							}
-						}
-					}
-				}
-			}
-		}
-	}
-
-	return labels;
-}
-
-Mat colorObjects(Mat src, int vecType)
-{
-	int height = src.rows;
-	int width = src.cols;
-
-	Scalar white(255, 255, 255);
-
-	Mat dst = labeledObjectsMatrix(src, vecType);
-	Mat colored(height, width, CV_8UC3, white);
-
-	std::map<int, Vec3b> colors;
-
-	for (int i = 0; i < height; i++)
-	{
-		for (int j = 0; j < width; j++)
-		{
-			int val = (int)dst.at<uchar>(i, j);
-			if (val != 0)
-			{
-				if (colors.count(val) == 0)
-				{
-					int v1 = rand() % 256;
-					int v2 = rand() % 256;
-					int v3 = rand() % 256;
-
-					Vec3b pixel(v1, v2, v3);
-					colors[val] = pixel;
-					colored.at<Vec3b>(i, j)[0] = v1;
-					colored.at<Vec3b>(i, j)[1] = v2;
-					colored.at<Vec3b>(i, j)[2] = v3;
-				}
-				else
-				{
-					Vec3b pixel = colors.at(val);
-					colored.at<Vec3b>(i, j)[0] = pixel[0];
-					colored.at<Vec3b>(i, j)[1] = pixel[1];
-					colored.at<Vec3b>(i, j)[2] = pixel[2];
-				}
-			}
-		}
-	}
-
-	return colored;
-}
-
-Mat equivalenceClassesLabeling(Mat src)
-{
-	int height = src.rows;
-	int width = src.cols;
-
-	int label = 0;
-	Mat source = greyscaleToBlackWhite(src, 250);
-	Mat labels = Mat::zeros(height, width, CV_8UC1);
-
-	std::vector<std::vector<uchar>> edges(256);
-
-	int di[8] = { -1, 0, 1, 1, 1, 0, -1, -1 };
-	int dj[8] = { -1, -1, -1, 0, 1, 1, 1, 0 };
-
-	for (int i = 0; i < height; i++)
-	{
-		for (int j = 0; j < width; j++)
-		{
-			if (source.at<uchar>(i, j) == 0 && labels.at<uchar>(i, j) == 0)
-			{
-				std::vector<uchar> L;
-				for (int k = 0; k < 8; k++)
-				{
-					if (isInside(source, i + di[k], j + dj[k]))
-					{
-						if (labels.at<uchar>(i + di[k], j + dj[k]) > 0)
-						{
-							L.push_back(labels.at<uchar>(i + di[k], j + dj[k]));
-						}
-					}
-				}
-
-				if (L.size() == 0)
-				{
-					label++;
-					labels.at<uchar>(i, j) = label;
-				}
-				else
-				{
-					uchar x = *std::min_element(L.begin(), L.end());
-					labels.at<uchar>(i, j) = x;
-					for (uchar y : L)
-					{
-						if (y != x)
-						{
-							edges[x].push_back(y);
-							edges[y].push_back(x);
-						}
-					}
-				}
-
-			}
-		}
-	}
-
-	int newLabel = 0;
-	std::vector<int> newLabels(label + 1, 0);
-
-	imshow("After first pass", labels);
-
-	for (int i = 1; i < label + 1; i++)
-	{
-		if (newLabels[i] == 0)
-		{
-			newLabel++;
-			std::queue<int> Q;
-
-			std::cout << newLabel << std::endl;
-
-			newLabels[i] = newLabel;
-			Q.push(i);
-			while (!Q.empty())
-			{
-				int x = Q.front();
-				Q.pop();
-				for (int y : edges[x])
-				{
-					if (newLabels[y] == 0)
-					{
-						newLabels[y] = newLabel;
-						Q.push(y);
-					}
-				}
-			}
-		}
-	}
-
-	for (int i = 0; i < height; i++)
-	{
-		for (int j = 0; j < width; j++)
-		{
-			labels.at<uchar>(i, j) = newLabels[labels.at<uchar>(i, j)];
-		}
-	}
-
-	return labels;
-}
-
-Mat labeledObjectsMatrixPaused(Mat src)
-{
-	int width = src.cols;
-	int height = src.rows;
-
-	// init la 20 pentru vizualizare
-	int label = 20;
-	Mat source = greyscaleToBlackWhite(src, 250);
-	Mat labels = Mat::zeros(height, width, CV_8UC1);
-
-	int di[8] = { -1, 0, 1, 1, 1, 0, -1, -1 };
-	int dj[8] = { -1, -1, -1, 0, 1, 1, 1, 0 };
-
-	for (int i = 0; i < height; i++)
-	{
-		for (int j = 0; j < width; j++)
-		{
-			if (src.at<uchar>(i, j) == 0 && labels.at<uchar>(i, j) == 0)
-			{
-				label++;
-				std::queue<Point> Q;
-				labels.at<uchar>(i, j) = label;
-				Point p(j, i);
-				Q.push(p);
-
-				while (!Q.empty())
-				{
-					Point q = Q.front();
-					Q.pop();
-					for (int k = 0; k < 8; k++)
-					{
-						if (isInside(src, q.y + di[k], q.x + dj[k]))
-						{
-							if (src.at<uchar>(q.y + di[k], q.x + dj[k]) == 0 && labels.at<uchar>(q.y + di[k], q.x + dj[k]) == 0)
-							{
-
-								imshow("Lableled image", labels);
-								waitKey(1);
-
-								labels.at<uchar>(q.y + di[k], q.x + dj[k]) = label;
-								Point neighbor(q.x + dj[k], q.y + di[k]);
-								Q.push(neighbor);
-							}
-						}
-					}
-				}
-			}
-		}
-	}
-
-	return labels;
-}
-
-Mat stackLabelling(Mat src, int vecType)
-{
-	int width = src.cols;
-	int height = src.rows;
-
-	int label = 0;
-	Mat source = src;
-	Mat labels = Mat::zeros(height, width, CV_8UC1);
-
-
-	for (int i = 0; i < height; i++)
-	{
-		for (int j = 0; j < width; j++)
-		{
-			if (source.at<uchar>(i, j) == 0 && labels.at<uchar>(i, j) == 0)
-			{
-				label += 10;
-				std::stack<Point> Q;
-				labels.at<uchar>(i, j) = label;
-				Point p(j, i);
-				Q.push(p);
-
-				while (!Q.empty())
-				{
-					Point q = Q.top();
-					Q.pop();
-
-					if (vecType == 1)
-					{
-						int di[8] = { -1, 0, 1, 1, 1, 0, -1, -1 };
-						int dj[8] = { -1, -1, -1, 0, 1, 1, 1, 0 };
-						for (int k = 0; k < 8; k++)
-						{
-							if (isInside(source, q.y + di[k], q.x + dj[k]))
-							{
-								if (source.at<uchar>(q.y + di[k], q.x + dj[k]) == 0 && labels.at<uchar>(q.y + di[k], q.x + dj[k]) == 0)
-								{
-									labels.at<uchar>(q.y + di[k], q.x + dj[k]) = label;
-									Point neighbor(q.x + dj[k], q.y + di[k]);
-									Q.push(neighbor);
-								}
-							}
-						}
-					}
-					else if (vecType == 2)
-					{
-						int di[4] = { -1, 0, 1, 0 };
-						int dj[4] = { 0, -1, 0, 1 };
-						for (int k = 0; k < 4; k++)
-						{
-							if (isInside(source, q.y + di[k], q.x + dj[k]))
-							{
-								if (source.at<uchar>(q.y + di[k], q.x + dj[k]) == 0 && labels.at<uchar>(q.y + di[k], q.x + dj[k]) == 0)
-								{
-									labels.at<uchar>(q.y + di[k], q.x + dj[k]) = label;
-									Point neighbor(q.x + dj[k], q.y + di[k]);
-									Q.push(neighbor);
-								}
-							}
-						}
-					}
-				}
-			}
-		}
-	}
-
-	return labels;
-}
-
-Mat contourTracing(Mat src)
-{
-	int height = src.rows;
-	int width = src.cols;
-
-	Mat dst = Mat::zeros(height, width, CV_8UC1);
-
-	int di[8] = { 0, -1, -1, -1, 0, 1, 1, 1 };
-	int dj[8] = { 1, 1, 0, -1, -1, -1, 0, 1 };
-
-	bool check = false;
-	Point firstPoint;
-	Point secondPoint;
-	Point lastButOnePoint;
-	Point currentPoint;
-
-	int dir = 7;
-
-	for (int i = 0; i < height && !check; i++)
-	{
-		for (int j = 0; j < width && !check; j++)
-		{
-			if (src.at<uchar>(i, j) == 0)
-			{
-				dst.at<uchar>(i, j) = 255;
-				currentPoint.x = firstPoint.x = j;
-				currentPoint.y = firstPoint.y = i;
-				check = true;
-			}
-		}
-	}
-
-	bool second = false;
-	// Assures that 2 points have been checked (for the stopping condition to be validly checked)
-	int iteration = 0;
-	bool stopCondition = false;
-
-	do
-	{
-		int n;
-		bool moved = false;
-
-		if (dir % 2 == 0)
-		{
-			n = (dir + 7) % 8;
-		}
-		else
-		{
-			n = (dir + 6) % 8;
-		}
-
-		for (int k = 0; k < 8 && !moved; k++)
-		{
-			int tempDir = (n + k) % 8;
-			if (src.at<uchar>(currentPoint.y + di[tempDir], currentPoint.x + dj[tempDir]) == src.at<uchar>(currentPoint.y, currentPoint.x))
-			{
-				dir = tempDir;
-				moved = true;
-				lastButOnePoint.x = currentPoint.x;
-				lastButOnePoint.y = currentPoint.y;
-				currentPoint.x = currentPoint.x + dj[tempDir];
-				currentPoint.y = currentPoint.y + di[tempDir];
-
-				if (!second)
-				{
-					second = true;
-					secondPoint.x = currentPoint.x;
-					secondPoint.y = currentPoint.y;
-				}
-
-				dst.at<uchar>(currentPoint.y, currentPoint.x) = 255;
-			}
-		}
-
-		iteration++;
-		if (iteration >= 2 && ((currentPoint.x == secondPoint.x) && (currentPoint.y == secondPoint.y)) && ((lastButOnePoint.x == firstPoint.x) && (lastButOnePoint.y == firstPoint.y)))
-		{
-			stopCondition = true;
-		}
-
-	} while (!stopCondition);
-
-	return dst;
-}
-
-void contourTracing(Mat src, std::vector<int>* chainCodes, std::vector<int>* diff)
-{
-	int height = src.rows;
-	int width = src.cols;
-
-	Mat dst = Mat::zeros(height, width, CV_8UC1);
-
-	int di[8] = { 0, -1, -1, -1, 0, 1, 1, 1 };
-	int dj[8] = { 1, 1, 0, -1, -1, -1, 0, 1 };
-
-	bool check = false;
-	Point firstPoint;
-	Point secondPoint;
-	Point lastButOnePoint;
-	Point currentPoint;
-
-	int dir = 7;
-
-	for (int i = 0; i < height && !check; i++)
-	{
-		for (int j = 0; j < width && !check; j++)
-		{
-			if (src.at<uchar>(i, j) == 0)
-			{
-				dst.at<uchar>(i, j) = 255;
-				currentPoint.x = firstPoint.x = j;
-				currentPoint.y = firstPoint.y = i;
-				check = true;
-			}
-		}
-	}
-
-	bool second = false;
-	// Assures that 2 points have been checked (for the stopping condition to be validly checked)
-	int iteration = 0;
-	bool stopCondition = false;
-
-	do
-	{
-		bool moved = false;
-		int n;
-
-		if (dir % 2 == 0)
-		{
-			n = (dir + 7) % 8;
-		}
-		else
-		{
-			n = (dir + 6) % 8;
-		}
-
-		for (int k = 0; k < 8 && !moved; k++)
-		{
-			int tempDir = (n + k) % 8;
-			if (src.at<uchar>(currentPoint.y + di[tempDir], currentPoint.x + dj[tempDir]) == src.at<uchar>(currentPoint.y, currentPoint.x))
-			{
-				dir = tempDir;
-				moved = true;
-				lastButOnePoint.x = currentPoint.x;
-				lastButOnePoint.y = currentPoint.y;
-				currentPoint.x = currentPoint.x + dj[tempDir];
-				currentPoint.y = currentPoint.y + di[tempDir];
-
-				if (!second)
-				{
-					second = true;
-					secondPoint.x = currentPoint.x;
-					secondPoint.y = currentPoint.y;
-				}
-				(*chainCodes).push_back(tempDir);
-			}
-		}
-
-		iteration++;
-		if (iteration >= 2 && ((currentPoint.x == secondPoint.x) && (currentPoint.y == secondPoint.y)) && ((lastButOnePoint.x == firstPoint.x) && (lastButOnePoint.y == firstPoint.y)))
-		{
-			stopCondition = true;
-		}
-
-	} while (!stopCondition);
-
-	int size = (*chainCodes).size();
-	for (int i = 0; i < size; i++)
-	{
-		int j = (i + 1) % size;
-		int d = (*chainCodes).at(j) - (*chainCodes).at(i);
-
-		if (d < 0)
-			d += 8;
-
-		(*diff).push_back(d % 8);
-	}
-
-}
-
-Mat contourTracing(int startX, int startY, std::vector<int> directions, Mat src)
-{
-	int height = src.rows;
-	int width = src.cols;
-
-	Mat dst = Mat(height, width, CV_8UC3);
-	Vec3b color1(0, 0, 0);
-	Vec3b color2(0, 255, 0);
-
-	for (int i = 0; i < height; i++)
-	{
-		for (int j = 0; j < width; j++)
-		{
-			dst.at<Vec3b>(i, j) = color1;
-		}
-	}
-
-
-	dst.at<Vec3b>(startY, startX) = color2;
-
-	int size = directions.size();
-	int posX = startX, posY = startY;
-
-
-	int di[8] = { 0, -1, -1, -1, 0, 1, 1, 1 };
-	int dj[8] = { 1, 1, 0, -1, -1, -1, 0, 1 };
-
-	int counter = 0;
-
-	for (int dir = 0; dir < size; dir++)
-	{
-		posX += dj[directions[dir]];
-		posY += di[directions[dir]];
-		counter++;
-		dst.at<Vec3b>(posY, posX) = color2;
-	}
-
-	return dst;
 }
 
 Mat dilate(Mat src)
@@ -1551,14 +447,6 @@ Mat difference(Mat a, Mat b)
 	return dst;
 }
 
-Mat contourExtraction(Mat src)
-{
-	int height = src.rows;
-	int width = src.cols;
-
-	return difference(src, erode(src));
-}
-
 Mat complement(Mat src)
 {
 	int height = src.rows;
@@ -1579,115 +467,6 @@ Mat complement(Mat src)
 	return dst;
 }
 
-Mat intersection(Mat a, Mat b)
-{
-	int height = a.rows;
-	int width = a.cols;
-
-	Mat dst = Mat(height, width, CV_8UC1, 255);
-	if (height == b.rows && width == b.cols)
-	{
-		for (int i = 0; i < height; i++)
-		{
-			for (int j = 0; j < width; j++)
-			{
-				if (a.at<uchar>(i, j) == b.at<uchar>(i, j))
-				{
-					dst.at<uchar>(i, j) = a.at<uchar>(i, j);
-				}
-			}
-		}
-	}
-
-	return dst;
-}
-
-Mat reunion(Mat a, Mat b)
-{
-	int height = a.rows;
-	int width = a.cols;
-
-	Mat dst = Mat(height, width, CV_8UC1, 255);
-	if (height == b.rows && width == b.cols)
-	{
-		for (int i = 0; i < height; i++)
-		{
-			for (int j = 0; j < width; j++)
-			{
-				if (a.at<uchar>(i, j) == 0 || b.at<uchar>(i, j) == 0)
-				{
-					dst.at<uchar>(i, j) = 0;
-				}
-			}
-		}
-	}
-
-	return dst;
-}
-
-bool equalMatrices(Mat a, Mat b)
-{
-	int height = a.rows;
-	int width = a.cols;
-
-	if (height == b.rows && width == b.cols)
-	{
-		for (int i = 0; i < height; i++)
-		{
-			for (int j = 0; j < width; j++)
-			{
-				if (a.at<uchar>(i, j) != b.at<uchar>(i, j))
-				{
-					return false;
-				}
-			}
-		}
-	}
-	return true;
-}
-
-void regionFilling(int event, int x, int y, int flags, void* param)
-{
-	Mat* mats = (Mat*)param;
-	Mat src = mats[0].clone();
-
-	int height = src.rows;
-	int width = src.cols;
-
-	Mat dst = Mat(height, width, CV_8UC1, 255);
-
-	if (event == CV_EVENT_LBUTTONDOWN)
-	{
-		Mat contour = contourExtraction(src);
-		Mat contourComplement = complement(contour);
-		Mat equalityTest;
-
-		int pi = y, pj = x;
-		std::cout << x << " " << y << "\n";
-
-		int dm[] = { 0, -1, 0, 1 };
-		int dn[] = { 1, 0, -1, 0 };
-
-		if (src.at<uchar>(pi, pj) != 0)
-		{
-			dst.at<uchar>(pi, pj) = 0;
-			Mat prevDst = Mat(height, width, CV_8UC1, 255);
-
-			while (!equalMatrices(prevDst, dst))
-			{
-				prevDst = dst.clone();
-				Mat dilatedDst = dilate(dst);
-				dst = intersection(dilatedDst, contourComplement);
-			}
-			mats[1] = reunion(dst, contour);
-			mats[1] = reunion(src, mats[1]);
-			imshow("Result image", mats[1]);
-			waitKey(0);
-		}
-	}
-}
-
-//EX 8.1
 int* computeHistogram(Mat src)
 {
 	int height = src.rows;
@@ -1945,7 +724,6 @@ Mat brightnessAdjustment(Mat src, int offset)
 	return dst;
 }
 
-//EX 8.4
 Mat histogramEqualization(Mat src)
 {
 	int height = src.rows;
@@ -1978,7 +756,6 @@ Mat histogramEqualization(Mat src)
 	return dst;
 }
 
-//EX 9.1 & 9.2
 Mat filter(Mat src, Mat h, int type)
 {
 	int height = src.rows;
@@ -2060,7 +837,6 @@ Mat filter(Mat src, Mat h, int type)
 	return dst;
 }
 
-//EX 9.3
 void centeringTransform(Mat img)
 {
 	for (int i = 0; i < img.rows; i++)
@@ -2104,54 +880,6 @@ Mat genericFrequencyDomainFilter(Mat src)
 	return dst;
 }
 
-//EX 9.4
-Mat logarithm(Mat src)
-{
-	int height = src.rows;
-	int width = src.cols;
-	Mat dst = Mat::zeros(height, width, CV_32FC1);
-
-	for (int i = 0; i < height; i++)
-		for (int j = 0; j < width; j++)
-		{
-			float val = src.at<float>(i, j) + 1;
-			dst.at<float>(i, j) += std::log(val);
-
-		}
-
-	return dst;
-}
-
-
-Mat computeFTMagnitude(Mat src, bool c)
-{
-	Mat srcf;
-	src.convertTo(srcf, CV_32FC1);
-
-	if (c)
-		centeringTransform(srcf);
-
-	Mat fourier;
-	cv::dft(srcf, fourier, DFT_COMPLEX_OUTPUT);
-
-	Mat channels[] = { Mat::zeros(src.size(), CV_32F), Mat::zeros(src.size(), CV_32F) };
-	cv::split(fourier, channels);
-
-	Mat mag, phi;
-	cv::magnitude(channels[0], channels[1], mag);
-	cv::phase(channels[0], channels[1], phi);
-
-	Mat logMag = logarithm(mag);
-	Mat res;
-	Mat dst;
-
-	logMag.convertTo(res, CV_8UC1);
-	cv::normalize(res, dst, 0, 255, NORM_MINMAX, CV_8UC1);
-
-	return dst;
-}
-
-//EX 9.5
 Mat idealFilter(Mat src, int type, float val)
 {
 	Mat srcf;
@@ -2164,7 +892,6 @@ Mat idealFilter(Mat src, int type, float val)
 
 	Mat channels[] = { Mat::zeros(src.size(), CV_32F), Mat::zeros(src.size(), CV_32F) };
 	cv::split(fourier, channels);
-
 
 
 	int height = channels[0].rows;
@@ -2274,7 +1001,7 @@ Mat filterRoundObjects(Mat src)
 	return dst;
 }
 
-Mat specularityFix(Mat src)
+Mat specularityFix(Mat src, int threshold)
 {
 	int height = src.rows;
 	int width = src.cols;
@@ -2285,24 +1012,14 @@ Mat specularityFix(Mat src)
 	{
 		for (int j = 0; j < width; j++)
 		{
-			if (src.at<uchar>(i, j) > 230 && isInside(src, i - 1, j) && isInside(src, i, j - 1))
-				dst.at<uchar>(i, j) = dst.at<uchar>(i - 1, j) / 2 + dst.at<uchar>(i, j - 1) / 2;
+			if (src.at<uchar>(i, j) > threshold)
+				dst.at<uchar>(i, j) = src.at<uchar>(i, j) - (255 - threshold) / 2;
 			else
 				dst.at<uchar>(i, j) = src.at<uchar>(i, j);
 		}
 	}
 	return dst;
 }
-
-////
-int di_4[4] = { -1,0,1,0 };
-int dj_4[4] = { 0,-1,0,1 };
-
-int di[4] = { -1,-1,-1,0 };
-int dj[4] = { -1,0,1,-1 };
-
-int di_8[8] = { -1,-1,0,1,1,1,0,-1 };
-int dj_8[8] = { 0,-1,-1,-1,0,1,1,1 };
 
 Mat displayRandomColours(int label, Mat labeledMatrix) {
 	std::default_random_engine gen;
@@ -2394,41 +1111,37 @@ Mat markPolyp(Mat source)
 	int s = 0;
 	float ai = averageIntensity(src);
 
+	// Preprocessing
 	dsts[s] = histogramEqualization(src);
 	s++;
 	
 	float v = (210 / ai);
-	std::cout << "gamma: " << v << std::endl;
+
 	dsts[s] = gammaCorrection(dsts[s - 1], v);
 	s++;
 
+	// Binarization for geometric-property filtering
 	dsts[s] = automaticGlobalBinarization(dsts[s - 1]);
 	s++;
 
 	dsts[s] = negative(dsts[s - 1]);
 	s++;
 
+	// Erode
 	dsts[s] = morphOperation(dsts[s - 1], 1, 7);
 	s++;
 
-	/*
-	dsts[s] = morphOperation(dsts[s - 1], 3, 4);
-	s++;
-	*/
+	// Labelling
+	Mat color = bfsLabeling((dsts + s - 1), 8);
 
-	Mat color1 = bfsLabeling((dsts + s - 1), 8);
-	Mat segmentedImage = filterRoundObjects(color1);
-
-
-	/*
-	imshow("s", brightnessAdjustment(segmentedImage, 60));
-	waitKey(0);
-	*/
+	// Filter by geometric properties
+	Mat segmentedImage = filterRoundObjects(color);
 
 	int counter = 0;
 	std::map<uchar, BoundingBox> boundingBoxes;
 	std::vector<uchar> values;
 
+	// Finding bounding boxes
 	for (int i = 0; i < height; i++)
 	{
 		for (int j = 0; j < width; j++)
@@ -2437,7 +1150,6 @@ Mat markPolyp(Mat source)
 			if (currentValue != 0)
 			{
 				counter++;
-				//std::cout << (int) currentValue << std::endl;
 				if (boundingBoxes.count(currentValue) == 0)
 				{
 					BoundingBox box;
@@ -2446,8 +1158,6 @@ Mat markPolyp(Mat source)
 					box.yMax = 0;
 					box.yMin = height;
 					
-					std::cout << (int)currentValue << std::endl;
-
 					values.push_back(currentValue);
 					boundingBoxes[currentValue] = box;
 				}
@@ -2466,16 +1176,16 @@ Mat markPolyp(Mat source)
 		}
 	}
 
+	// Filter polyps with aspect ratio out of range
 	for (uchar x : values)
 	{
 		BoundingBox box = boundingBoxes[x];
 		float ar = aspectRatio(box.xMax, box.xMin, box.yMax, box.yMin);
-		std::cout << "ar " << ar << std::endl;
-		if (ar < 0.9 || ar > 1.21)
+		if (ar < MIN_AR|| ar > MAX_AR)
 			boundingBoxes.erase(x);
 	}
 	
-	std::cout << "Identified polyps: " << boundingBoxes.size() << "\n";
+	std::cout << "Number of identified polyps: " << boundingBoxes.size() << "\n";
 
 	Mat markedPoints = Mat::zeros(height, width, CV_8UC1);
 
@@ -2503,7 +1213,6 @@ Mat markPolyp(Mat source)
 	return dst;
 }
 
-
 int main()
 {
 	Mat src, dst;
@@ -2516,6 +1225,7 @@ int main()
 
 	imshow("SOURCE", src);
 	dst = markPolyp(src);
+
 	imshow("MARKED SOURCE", dst);
 	waitKey();
 	return 0;

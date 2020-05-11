@@ -424,29 +424,6 @@ Mat morphOperation(Mat src, int opcode, int numberOfTimes)
 	return dst;
 }
 
-Mat difference(Mat a, Mat b)
-{
-	int height = a.rows;
-	int width = a.cols;
-
-	Mat dst = Mat(height, width, CV_8UC1, 255);
-	if (height == b.rows && width == b.cols)
-	{
-		for (int i = 0; i < height; i++)
-		{
-			for (int j = 0; j < width; j++)
-			{
-				if (a.at<uchar>(i, j) != b.at<uchar>(i, j))
-				{
-					dst.at<uchar>(i, j) = a.at<uchar>(i, j);
-				}
-			}
-		}
-	}
-
-	return dst;
-}
-
 Mat complement(Mat src)
 {
 	int height = src.rows;

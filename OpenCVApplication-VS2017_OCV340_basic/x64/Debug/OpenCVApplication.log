@@ -1,25 +1,25 @@
 ﻿  OpenCVApplication.cpp
-c:\users\hoggo\desktop\pi\res_proj\intestinal-polyp-segmentation\opencvapplication-vs2017_ocv340_basic\opencvapplication.cpp(117): warning C4305: 'initializing': truncation from 'double' to 'float'
-c:\users\hoggo\desktop\pi\res_proj\intestinal-polyp-segmentation\opencvapplication-vs2017_ocv340_basic\opencvapplication.cpp(239): warning C4244: 'initializing': conversion from 'int' to 'float', possible loss of data
-c:\users\hoggo\desktop\pi\res_proj\intestinal-polyp-segmentation\opencvapplication-vs2017_ocv340_basic\opencvapplication.cpp(240): warning C4244: 'initializing': conversion from 'int' to 'float', possible loss of data
-c:\users\hoggo\desktop\pi\res_proj\intestinal-polyp-segmentation\opencvapplication-vs2017_ocv340_basic\opencvapplication.cpp(242): warning C4244: 'return': conversion from 'double' to 'float', possible loss of data
-c:\users\hoggo\desktop\pi\res_proj\intestinal-polyp-segmentation\opencvapplication-vs2017_ocv340_basic\opencvapplication.cpp(541): warning C4244: '=': conversion from 'double' to 'float', possible loss of data
-c:\users\hoggo\desktop\pi\res_proj\intestinal-polyp-segmentation\opencvapplication-vs2017_ocv340_basic\opencvapplication.cpp(602): warning C4244: '=': conversion from 'float' to 'int', possible loss of data
-c:\users\hoggo\desktop\pi\res_proj\intestinal-polyp-segmentation\opencvapplication-vs2017_ocv340_basic\opencvapplication.cpp(649): warning C4244: '=': conversion from 'int' to 'float', possible loss of data
-c:\users\hoggo\desktop\pi\res_proj\intestinal-polyp-segmentation\opencvapplication-vs2017_ocv340_basic\opencvapplication.cpp(657): warning C4244: '=': conversion from 'int' to 'float', possible loss of data
-c:\users\hoggo\desktop\pi\res_proj\intestinal-polyp-segmentation\opencvapplication-vs2017_ocv340_basic\opencvapplication.cpp(663): warning C4244: 'initializing': conversion from 'float' to 'int', possible loss of data
-c:\users\hoggo\desktop\pi\res_proj\intestinal-polyp-segmentation\opencvapplication-vs2017_ocv340_basic\opencvapplication.cpp(737): warning C4244: '=': conversion from 'double' to 'float', possible loss of data
-c:\users\hoggo\desktop\pi\res_proj\intestinal-polyp-segmentation\opencvapplication-vs2017_ocv340_basic\opencvapplication.cpp(745): warning C4244: '=': conversion from 'float' to '_Tp', possible loss of data
+c:\users\hoggo\desktop\pi\res_proj\intestinal-polyp-segmentation\opencvapplication-vs2017_ocv340_basic\opencvapplication.cpp(119): warning C4305: 'initializing': truncation from 'double' to 'float'
+c:\users\hoggo\desktop\pi\res_proj\intestinal-polyp-segmentation\opencvapplication-vs2017_ocv340_basic\opencvapplication.cpp(241): warning C4244: 'initializing': conversion from 'int' to 'float', possible loss of data
+c:\users\hoggo\desktop\pi\res_proj\intestinal-polyp-segmentation\opencvapplication-vs2017_ocv340_basic\opencvapplication.cpp(242): warning C4244: 'initializing': conversion from 'int' to 'float', possible loss of data
+c:\users\hoggo\desktop\pi\res_proj\intestinal-polyp-segmentation\opencvapplication-vs2017_ocv340_basic\opencvapplication.cpp(244): warning C4244: 'return': conversion from 'double' to 'float', possible loss of data
+c:\users\hoggo\desktop\pi\res_proj\intestinal-polyp-segmentation\opencvapplication-vs2017_ocv340_basic\opencvapplication.cpp(543): warning C4244: '=': conversion from 'double' to 'float', possible loss of data
+c:\users\hoggo\desktop\pi\res_proj\intestinal-polyp-segmentation\opencvapplication-vs2017_ocv340_basic\opencvapplication.cpp(604): warning C4244: '=': conversion from 'float' to 'int', possible loss of data
+c:\users\hoggo\desktop\pi\res_proj\intestinal-polyp-segmentation\opencvapplication-vs2017_ocv340_basic\opencvapplication.cpp(651): warning C4244: '=': conversion from 'int' to 'float', possible loss of data
+c:\users\hoggo\desktop\pi\res_proj\intestinal-polyp-segmentation\opencvapplication-vs2017_ocv340_basic\opencvapplication.cpp(659): warning C4244: '=': conversion from 'int' to 'float', possible loss of data
+c:\users\hoggo\desktop\pi\res_proj\intestinal-polyp-segmentation\opencvapplication-vs2017_ocv340_basic\opencvapplication.cpp(665): warning C4244: 'initializing': conversion from 'float' to 'int', possible loss of data
+c:\users\hoggo\desktop\pi\res_proj\intestinal-polyp-segmentation\opencvapplication-vs2017_ocv340_basic\opencvapplication.cpp(739): warning C4244: '=': conversion from 'double' to 'float', possible loss of data
+c:\users\hoggo\desktop\pi\res_proj\intestinal-polyp-segmentation\opencvapplication-vs2017_ocv340_basic\opencvapplication.cpp(747): warning C4244: '=': conversion from 'float' to '_Tp', possible loss of data
           with
           [
               _Tp=uchar
           ]
-c:\users\hoggo\desktop\pi\res_proj\intestinal-polyp-segmentation\opencvapplication-vs2017_ocv340_basic\opencvapplication.cpp(907): warning C4244: '=': conversion from 'int' to 'float', possible loss of data
-c:\users\hoggo\desktop\pi\res_proj\intestinal-polyp-segmentation\opencvapplication-vs2017_ocv340_basic\opencvapplication.cpp(916): warning C4244: '=': conversion from 'int' to 'float', possible loss of data
-c:\users\hoggo\desktop\pi\res_proj\intestinal-polyp-segmentation\opencvapplication-vs2017_ocv340_basic\opencvapplication.cpp(925): warning C4244: '=': conversion from 'int' to 'float', possible loss of data
-c:\users\hoggo\desktop\pi\res_proj\intestinal-polyp-segmentation\opencvapplication-vs2017_ocv340_basic\opencvapplication.cpp(933): warning C4244: '=': conversion from 'int' to 'float', possible loss of data
-c:\users\hoggo\desktop\pi\res_proj\intestinal-polyp-segmentation\opencvapplication-vs2017_ocv340_basic\opencvapplication.cpp(975): warning C4244: 'initializing': conversion from 'int' to 'float', possible loss of data
-c:\users\hoggo\desktop\pi\res_proj\intestinal-polyp-segmentation\opencvapplication-vs2017_ocv340_basic\opencvapplication.cpp(1192): warning C4244: 'argument': conversion from 'int' to 'float', possible loss of data
+c:\users\hoggo\desktop\pi\res_proj\intestinal-polyp-segmentation\opencvapplication-vs2017_ocv340_basic\opencvapplication.cpp(909): warning C4244: '=': conversion from 'int' to 'float', possible loss of data
+c:\users\hoggo\desktop\pi\res_proj\intestinal-polyp-segmentation\opencvapplication-vs2017_ocv340_basic\opencvapplication.cpp(918): warning C4244: '=': conversion from 'int' to 'float', possible loss of data
+c:\users\hoggo\desktop\pi\res_proj\intestinal-polyp-segmentation\opencvapplication-vs2017_ocv340_basic\opencvapplication.cpp(927): warning C4244: '=': conversion from 'int' to 'float', possible loss of data
+c:\users\hoggo\desktop\pi\res_proj\intestinal-polyp-segmentation\opencvapplication-vs2017_ocv340_basic\opencvapplication.cpp(935): warning C4244: '=': conversion from 'int' to 'float', possible loss of data
+c:\users\hoggo\desktop\pi\res_proj\intestinal-polyp-segmentation\opencvapplication-vs2017_ocv340_basic\opencvapplication.cpp(977): warning C4244: 'initializing': conversion from 'int' to 'float', possible loss of data
+c:\users\hoggo\desktop\pi\res_proj\intestinal-polyp-segmentation\opencvapplication-vs2017_ocv340_basic\opencvapplication.cpp(1183): warning C4244: 'argument': conversion from 'int' to 'float', possible loss of data
   OpenCVApplication.vcxproj -> C:\Users\hoGGo\Desktop\PI\Res_proj\intestinal-polyp-segmentation\OpenCVApplication-VS2017_OCV340_basic\x64\Debug\OpenCVApplication.exe
   OpenCV\dll\Debug\opencv_ffmpeg340_64.dll
   OpenCV\dll\Debug\opencv_world340d.dll

@@ -544,7 +544,6 @@ float standardDeviation(Mat src)
 	return stdDev;
 }
 
-//EX 8.2
 Mat automaticGlobalBinarization(Mat src)
 {
 	int height = src.rows;
@@ -612,7 +611,6 @@ Mat automaticGlobalBinarization(Mat src)
 	return greyscaleToBlackWhite(src, Tnew);
 }
 
-//EX 8.3
 Mat negative(Mat src)
 {
 	int height = src.rows;
@@ -756,205 +754,6 @@ Mat histogramEqualization(Mat src)
 	return dst;
 }
 
-Mat filter(Mat src, Mat h, int type)
-{
-	int height = src.rows;
-	int width = src.cols;
-	int hHeight = h.rows;
-	int hWidth = h.cols;
-
-	Mat dst = Mat(height, width, CV_8UC1);
-
-	if (hHeight == hWidth)
-	{
-		int w = hWidth;
-		int k = (w - 1) / 2;
-		int sp = 0;
-		int sm = 0;
-		int c = 0;
-
-		switch (type)
-		{
-		case 0:
-			for (int u = 0; u < w; u++)
-			{
-				for (int v = 0; v < w; v++)
-				{
-					c += h.at<int>(u, v);
-				}
-			}
-
-			for (int i = 0; i < height; i++)
-			{
-				for (int j = 0; j < width; j++)
-				{
-					int val = 0;
-					for (int u = 0; u < w; u++)
-					{
-						for (int v = 0; v < w; v++)
-						{
-							val += h.at<int>(u, v) * (int)src.at<uchar>(i + u - k, j + v - k);
-						}
-					}
-					val /= c;
-					dst.at<uchar>(i, j) = (uchar)val;
-				}
-			}
-			break;
-		case 1:
-			for (int u = 0; u < w; u++)
-			{
-				for (int v = 0; v < w; v++)
-				{
-					if (h.at<int>(u, v) >= 0)
-						sp += h.at<int>(u, v);
-					else
-						sm -= h.at<int>(u, v);
-				}
-			}
-
-			for (int i = 0; i < height; i++)
-			{
-				for (int j = 0; j < width; j++)
-				{
-					int val = 0;
-					for (int u = 0; u < w; u++)
-					{
-						for (int v = 0; v < w; v++)
-						{
-							val += h.at<int>(u, v) * (int)src.at<uchar>(i + u - k, j + v - k);
-						}
-					}
-					val /= 2 * max(sp, sm);
-					val += 255 / 2;
-					dst.at<uchar>(i, j) = (uchar)val;
-				}
-			}
-			break;
-		default: break;
-		}
-	}
-	return dst;
-}
-
-void centeringTransform(Mat img)
-{
-	for (int i = 0; i < img.rows; i++)
-	{
-		for (int j = 0; j < img.cols; j++)
-		{
-			img.at<float>(i, j) = ((i + j) & 1) ? -img.at<float>(i, j) : img.at<float>(i, j);
-		}
-	}
-}
-
-Mat genericFrequencyDomainFilter(Mat src)
-{
-	Mat srcf;
-	src.convertTo(srcf, CV_32FC1);
-
-	centeringTransform(srcf);
-
-	Mat fourier;
-	cv::dft(srcf, fourier, DFT_COMPLEX_OUTPUT);
-
-	Mat channels[] = { Mat::zeros(src.size(), CV_32F), Mat::zeros(src.size(), CV_32F) };
-	cv::split(fourier, channels);
-
-	Mat mag, phi;
-	cv::magnitude(channels[0], channels[1], mag);
-	cv::phase(channels[0], channels[1], phi);
-
-	//inserare operatii de filtrare aplicate pe coef. Fourier
-
-	//memorarea partii reale in channels[0] si img. in channels[1]
-
-	Mat dst, dstf;
-	cv::merge(channels, 2, fourier);
-	cv::dft(fourier, dstf, DFT_INVERSE | DFT_REAL_OUTPUT | DFT_SCALE);
-
-	centeringTransform(dstf);
-
-	cv::normalize(dstf, dst, 0, 255, NORM_MINMAX, CV_8UC1);
-
-	return dst;
-}
-
-Mat idealFilter(Mat src, int type, float val)
-{
-	Mat srcf;
-	src.convertTo(srcf, CV_32FC1);
-
-	centeringTransform(srcf);
-
-	Mat fourier;
-	cv::dft(srcf, fourier, DFT_COMPLEX_OUTPUT);
-
-	Mat channels[] = { Mat::zeros(src.size(), CV_32F), Mat::zeros(src.size(), CV_32F) };
-	cv::split(fourier, channels);
-
-
-	int height = channels[0].rows;
-	int width = channels[0].cols;
-
-	for (int i = 0; i < height; i++)
-	{
-		for (int j = 0; j < width; j++)
-		{
-			float expr = 0;
-			float power = 0;
-			switch (type)
-			{
-			case 0:
-				expr = (height / 2 - i) * (height / 2 - i) +
-					(width / 2 - j) * (width / 2 - j);
-				if (expr > (val * val))
-				{
-					channels[0].at<float>(i, j) = 0;
-					channels[1].at<float>(i, j) = 0;
-				}
-				break;
-			case 1:
-				expr = (height / 2 - i) * (height / 2 - i) +
-					(width / 2 - j) * (width / 2 - j);
-				if (expr <= (val * val))
-				{
-					channels[0].at<float>(i, j) = 0;
-					channels[1].at<float>(i, j) = 0;
-				}
-				break;
-			case 2:
-				power = (-1) * ((height / 2 - i) * (height / 2 - i) +
-					(width / 2 - j) * (width / 2 - j));
-				power /= (val * val);
-				expr = exp(power);
-				channels[0].at<float>(i, j) = channels[0].at<float>(i, j) * expr;
-				channels[1].at<float>(i, j) = channels[1].at<float>(i, j) * expr;
-				break;
-			default:
-				power = (-1) * ((height / 2 - i) * (height / 2 - i) +
-					(width / 2 - j) * (width / 2 - j));
-				power /= (val * val);
-				expr = exp(power);
-				channels[0].at<float>(i, j) = channels[0].at<float>(i, j) * (1 - expr);
-				channels[1].at<float>(i, j) = channels[1].at<float>(i, j) * (1 - expr);
-				break;
-			}
-		}
-	}
-
-
-	Mat dst, dstf;
-	cv::merge(channels, 2, fourier);
-	cv::dft(fourier, dstf, DFT_INVERSE | DFT_REAL_OUTPUT | DFT_SCALE);
-
-	centeringTransform(dstf);
-
-	cv::normalize(dstf, dst, 0, 255, NORM_MINMAX, CV_8UC1);
-
-	return dst;
-}
-
 Mat filterRoundObjects(Mat src)
 {
 	int height = src.rows;
@@ -996,26 +795,6 @@ Mat filterRoundObjects(Mat src)
 						dst.at<uchar>(i, j) = currentColor;
 				}
 			}
-		}
-	}
-	return dst;
-}
-
-Mat specularityFix(Mat src, int threshold)
-{
-	int height = src.rows;
-	int width = src.cols;
-
-	Mat dst = Mat::zeros(height, width, CV_8UC1);
-
-	for (int i = 0; i < height; i++)
-	{
-		for (int j = 0; j < width; j++)
-		{
-			if (src.at<uchar>(i, j) > threshold)
-				dst.at<uchar>(i, j) = src.at<uchar>(i, j) - (255 - threshold) / 2;
-			else
-				dst.at<uchar>(i, j) = src.at<uchar>(i, j);
 		}
 	}
 	return dst;

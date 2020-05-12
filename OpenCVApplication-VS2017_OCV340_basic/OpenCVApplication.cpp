@@ -81,6 +81,32 @@ Mat greyscaleToBlackWhite(Mat src, int threshold)
 	return dst;
 }
 
+Mat greyscaleToBlackWhiteNegative(Mat src, int threshold)
+{
+	int height = src.rows;
+	int width = src.cols;
+
+	Mat dst = Mat(height, width, CV_8UC1);
+
+	for (int i = 0; i < height; i++)
+	{
+		for (int j = 0; j < width; j++)
+		{
+			uchar valSrc = src.at<uchar>(i, j);
+
+			if (valSrc >= threshold)
+			{
+				dst.at<uchar>(i, j) = 0;
+			}
+			else
+			{
+				dst.at<uchar>(i, j) = 255;
+			}
+		}
+	}
+	return dst;
+}
+
 bool isInside(Mat img, int i, int j)
 {
 	int rows = img.rows;
@@ -855,6 +881,7 @@ Mat markPolyp(Mat source)
 	// Res mats
 	Mat dsts[15];
 	Mat src = colorToGreyscale(source);
+	Mat canny;
 
 	// Useful data
 	int v1[] = { 0, -1, 0, -1, 5, -1, 0, -1, 0 };
@@ -892,6 +919,8 @@ Mat markPolyp(Mat source)
 
 	// Filter by geometric properties
 	Mat segmentedImage = filterRoundObjects(color);
+
+	Mat binarySegmented = greyscaleToBlackWhiteNegative(segmentedImage, 1);
 
 	int counter = 0;
 	std::map<uchar, BoundingBox> boundingBoxes;
@@ -939,6 +968,23 @@ Mat markPolyp(Mat source)
 		float ar = aspectRatio(box.xMax, box.xMin, box.yMax, box.yMin);
 		if (ar < MIN_AR|| ar > MAX_AR)
 			boundingBoxes.erase(x);
+		else
+		{
+			float factor = ((boundingBoxes[x].xMax - boundingBoxes[x].xMin) + (boundingBoxes[x].yMax - boundingBoxes[x].yMin)) / 2;
+			factor = (1 / (float)factor) * 400;
+			std::cout << "F:" << factor;
+			
+			binarySegmented = morphOperation(binarySegmented, 0, factor);
+			cv::Canny(binarySegmented, binarySegmented, 50, 150);
+
+			int distanceX = (factor) * (boundingBoxes[x].xMax - boundingBoxes[x].xMin);
+			int distanceY = (factor) * (boundingBoxes[x].yMax - boundingBoxes[x].yMin);
+
+			boundingBoxes[x].xMax += distanceX / 2;
+			boundingBoxes[x].xMin -= distanceX / 2;
+			boundingBoxes[x].yMax += distanceY / 2;
+			boundingBoxes[x].yMin -= distanceY / 2;
+		}
 	}
 	
 	std::cout << "Number of identified polyps: " << boundingBoxes.size() << "\n";
@@ -951,17 +997,15 @@ Mat markPolyp(Mat source)
 		{
 			for (auto const& x : boundingBoxes)
 			{
-				if ((i == x.second.yMin || i == x.second.yMax) && (j > x.second.xMin && j < x.second.xMax) ||
-					((j == x.second.xMin || j == x.second.xMax) && (i > x.second.yMin && i < x.second.yMax)))
-				{
-					markedPoints.at<uchar>(i, j) = 255;
-					dst.at<Vec3b>(i, j) = Vec3b(255, 0, 0);
-				}
-				else
-				{
-					if (markedPoints.at<uchar>(i, j) == 0)
+				if ((i < x.second.yMax) && (i > x.second.yMin) &&
+					(j < x.second.xMax) && (j > x.second.xMin))
+					if (binarySegmented.at<uchar>(i, j) == 255)
+						dst.at<Vec3b>(i, j) = Vec3b(255, 0, 0);
+					else
 						dst.at<Vec3b>(i, j) = source.at<Vec3b>(i, j);
-				}
+				else
+					dst.at<Vec3b>(i, j) = source.at<Vec3b>(i, j);
+				
 			}
 		}
 	}
